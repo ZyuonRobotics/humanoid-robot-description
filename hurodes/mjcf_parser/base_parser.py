@@ -30,6 +30,7 @@ class BaseMJCFParser:
         self.body_parent_id = None
         self.data_dict = None
         self.meshed_path = None
+        self.mesh_file_type = None
         self.body_name2idx = None
 
     def print_body_tree(self, body_element=None, indent=0):
@@ -52,8 +53,6 @@ class BaseMJCFParser:
         self.parse_mujoco_xml()
 
     def parse_mujoco_model(self):
-        self.data_dict = defaultdict(list)
-
         def data2dict(data, name, dim_num=None):
             assert len(data.shape) == 1, f"Data shape should be 1D, but got {data.shape}"
             if dim_num is None:
@@ -62,6 +61,8 @@ class BaseMJCFParser:
                 return {name: data[0]}
             else:
                 return {f"{name}{i}": data[i] for i in range(dim_num)}
+
+        self.data_dict = defaultdict(list)
 
         model = mujoco.MjModel.from_xml_path(self.mjcf_path)
         self.body_parent_id = model.body_parentid.tolist()
@@ -79,7 +80,7 @@ class BaseMJCFParser:
             jnt_dict = {"name": jnt.name, "type": ["free", "ball", "slide", "hinge"][jnt.type[0]]}
             for key in ["pos", "axis", "range"]:
                 jnt_dict |= data2dict(getattr(jnt, key), key)
-            for key in ["armature", "damping", "frictionloss", "bodyid"]:
+            for key in ["armature", "damping", "frictionloss", "stiffness", "bodyid"]:
                 jnt_dict |= data2dict(getattr(jnt, key), key, 1)
             self.data_dict["joint"].append(jnt_dict)
 
@@ -105,7 +106,7 @@ class BaseMJCFParser:
 
 
     def parse_mujoco_xml(self):
-        self.meshed_path = {}
+        self.meshed_path, self.mesh_file_type = {}, {}
         if "meshdir" in self.root.find("compiler").attrib:
             meshdir = self.root.find("compiler").attrib["meshdir"]
             meshdir = os.path.join(os.path.dirname(self.mjcf_path), meshdir)
@@ -113,6 +114,7 @@ class BaseMJCFParser:
             meshdir = os.path.dirname(self.mjcf_path)
         for mesh_elem in self.root.find("asset").findall("mesh"):
             self.meshed_path[mesh_elem.get("name")] = os.path.join(meshdir, mesh_elem.get("file"))
+            self.mesh_file_type[mesh_elem.get("name")] = mesh_elem.get("file").split(".")[-1]
 
         for body_elem in self.root.findall(".//body"):
             body_idx = self.body_name2idx[body_elem.get("name")]
@@ -121,7 +123,7 @@ class BaseMJCFParser:
                     self.data_dict["mesh"].append({
                         "type": "mesh",
                         "mesh": geom_elem.get("mesh"),
-                        "body_idx": body_idx
+                        "bodyid": body_idx
                     })
 
 
@@ -130,17 +132,15 @@ class BaseMJCFParser:
 
         # copy mesh files
         os.makedirs(os.path.join(save_path, "meshes"), exist_ok=True)
-        mesh_file_type = {}
         for name, path in self.meshed_path.items():
-            mesh_file_type[name] = os.path.splitext(path)[-1][1:]
-            shutil.copy(path, os.path.join(save_path, "meshes", f"{name}.{mesh_file_type[name]}"))
+            shutil.copy(path, os.path.join(save_path, "meshes", f"{name}.{self.mesh_file_type[name]}"))
 
         # save meta info, including body tree
         meta_path = os.path.join(save_path, "meta.json")
         meta_info = {
             "format_type": self.format_type.value,
-            "body_tree": self.body_parent_id,
-            "mesh_file_type": mesh_file_type
+            "body_parent_id": self.body_parent_id,
+            "mesh_file_type": self.mesh_file_type
         }
         with open(meta_path, "w") as json_file:
             json.dump(meta_info, json_file, indent=4)
