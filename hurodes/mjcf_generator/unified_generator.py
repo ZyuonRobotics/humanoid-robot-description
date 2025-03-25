@@ -9,8 +9,36 @@ from colorama import Fore, Style
 import numpy as np
 import pandas as pd
 
+from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
 from hurodes.contants import RobotFormatType
 
+DEFAULT_GROUND_TEXTURE_ATTR = {
+    "type": "2d",
+    "name": "groundplane",
+    "builtin": "checker",
+    "mark": "edge",
+    "rgb1": "0.2 0.3 0.4",
+    "rgb2": "0.1 0.2 0.3",
+    "markrgb": "0.8 0.8 0.8",
+    "width": "300",
+    "height": "300"
+}
+DEFAULT_GROUND_MATERIAL_ATTR ={
+    "name": "groundplane",
+    "texture": "groundplane",
+    "texuniform": "true",
+    "texrepeat": "5 5",
+    "reflectance": "0.2"
+}
+
+DEFAULT_GROUND_GEOM_ATTR = {
+    "name": "floor",
+    "size": "0 0 0.05",
+    "type": "plane",
+    "material": "groundplane",
+    "condim": "3",
+    "conaffinity": "15"
+}
 
 def dict2str(data, name):
     keys_in_dict = [key for key in data.keys() if key.startswith(name)]
@@ -33,15 +61,22 @@ def find_by_body_id(all_data, body_id):
     return res
 
 
-class BaseMJCFGenerator:
+class UnifiedMJCFGenerator(MJCFGeneratorBase):
     format_type = RobotFormatType.UNKNOWN
 
-    def __init__(self, ehdf_path):
+    def __init__(
+            self,
+            ehdf_path,
+            disable_gravity=False,
+            timestep=0.001
+    ):
+        super().__init__(disable_gravity=disable_gravity, timestep=timestep)
         self.ehdf_path = ehdf_path
 
         self.body_parent_id = None
         self.data_dict = None
         self.mesh_file_type = None
+        self.ground_dict = None
 
         self.xml_root = ET.Element('mujoco')
 
@@ -51,14 +86,13 @@ class BaseMJCFGenerator:
         assert RobotFormatType(meta_info["format_type"]) == self.format_type, f"Format type mismatch"
         self.body_parent_id = meta_info["body_parent_id"]
         self.mesh_file_type = meta_info["mesh_file_type"]
+        self.ground_dict = meta_info["ground"]
 
         self.data_dict = {}
         for name in ["body", "joint", "mesh", "collision", "actuator"]:
             self.data_dict[name] = pd.read_csv(os.path.join(self.ehdf_path, f"{name}.csv")).to_dict("records")
 
     def generate_single_body_xml(self, parent_node, body_idx):
-
-
         # body element
         body_data = self.data_dict["body"][body_idx]
         body_elem = ET.SubElement(parent_node, 'body')
@@ -81,7 +115,7 @@ class BaseMJCFGenerator:
         mesh_data_list = find_by_body_id(self.data_dict["mesh"], body_idx)
         for mesh_data in mesh_data_list:
             mesh_elem = ET.SubElement(body_elem, 'geom')
-            for key in ["type", "mesh"]:
+            for key in ["type", "mesh", "contype", "conaffinity", "pos", "quat", "rgba"]:
                 mesh_elem.set(key, dict2str(mesh_data, key))
 
         # collision element
@@ -122,26 +156,25 @@ class BaseMJCFGenerator:
         ET.SubElement(asset_elem, "texture",
                       attrib={"type": "skybox", "builtin": "gradient", "rgb1": "0.3 0.5 0.7", "rgb2": "0 0 0",
                               "width": "512", "height": "3072"})
-        ET.SubElement(asset_elem, "texture",
-                      attrib={"type": "2d", "name": "groundplane", "builtin": "checker", "mark": "edge",
-                              "rgb1": "0.2 0.3 0.4", "rgb2": "0.1 0.2 0.3", "markrgb": "0.8 0.8 0.8",
-                              "width": "300",
-                              "height": "300"})
-        ET.SubElement(asset_elem, "material",
-                      attrib={"name": "groundplane", "texture": "groundplane", "texuniform": "true",
-                              "texrepeat": "5 5",
-                              "reflectance": "0.2"})
+        ET.SubElement(asset_elem, "texture", attrib=DEFAULT_GROUND_TEXTURE_ATTR)
+        ET.SubElement(asset_elem, "material", attrib=DEFAULT_GROUND_MATERIAL_ATTR)
+
         for mesh, file_type in self.mesh_file_type.items():
             mesh_elem = ET.SubElement(asset_elem, 'mesh',
                                       attrib={"name": mesh, "file": f"{mesh}.{file_type}"})
+
+    def add_ground(self, worldbody_elem):
+        ground_attr = DEFAULT_GROUND_GEOM_ATTR
+        if self.ground_dict is not None:
+            for key, value in self.ground_dict.items():
+                ground_attr[key] = value
+        geom_elem = ET.SubElement(worldbody_elem, 'geom', attrib=ground_attr)
 
     def add_worldbody(self):
         world_body = ET.SubElement(self.xml_root, 'worldbody')
         light_elem = ET.SubElement(world_body, "light",
                                    attrib={"pos": "0 0 3.5", "dir": "0 0 -1", "directional": "true"})
-        geom_elem = ET.SubElement(world_body, "geom", attrib={"name": "floor", "size": "0 0 0.05", "type": "plane",
-                                                              "material": "groundplane", "condim": "3",
-                                                              "conaffinity": "15"})
+        self.add_ground(world_body)
 
         self.generate_all_body_xml(world_body, 0)
 
@@ -159,25 +192,15 @@ class BaseMJCFGenerator:
         self.add_worldbody()
         self.add_actuator()
 
-        tree = ET.ElementTree(self.xml_root)
-        ET.indent(tree, space="  ", level=0)
-        xml_string = ET.tostring(self.xml_root, encoding='unicode', method='xml')
-        return xml_string
-
 if __name__ == '__main__':
     from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
     import mujoco
     import mujoco.viewer
 
     ehdf_path = os.path.join(ROBOTS_PATH, "kuavo_s45")
-    generator = BaseMJCFGenerator(ehdf_path)
+    generator = UnifiedMJCFGenerator(ehdf_path)
+    xml_string = generator.export(os.path.join(ehdf_path, "robot.xml"))
 
-    generator.load()
-    xml_string = generator.generate()
-    with open(os.path.join(ehdf_path, "robot.xml"), "w") as f:
-        f.write(xml_string)
-
-    # print(xml_string)
     m = mujoco.MjModel.from_xml_string(xml_string)
     d = mujoco.MjData(m)
     with mujoco.viewer.launch_passive(m, d) as viewer:

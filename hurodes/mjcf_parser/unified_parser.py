@@ -6,12 +6,33 @@ import shutil
 
 from colorama import Fore, Style
 import pandas as pd
+import numpy as np
 import mujoco
 
 from hurodes.contants import RobotFormatType
+from hurodes.utils import is_int, is_float
+
+def str2dict(string, name, dim_num=None):
+    elements = string.split()
+    if all([is_int(elem) for elem in elements]):
+        data = np.array(elements, dtype=int)
+    elif all([is_float(elem) for elem in elements]):
+        data = np.array(elements, dtype=float)
+    else:
+        data = np.array(elements)
+    return data2dict(data, name, dim_num)
+
+def data2dict(data, name, dim_num=None):
+    assert len(data.shape) == 1, f"Data shape should be 1D, but got {data.shape}"
+    if dim_num is None:
+        dim_num = data.shape[0]
+    if dim_num == 1:
+        return {name: data[0]}
+    else:
+        return {f"{name}{i}": data[i] for i in range(dim_num)}
 
 
-class BaseMJCFParser:
+class UnifiedMJCFParser:
     format_type = RobotFormatType.UNKNOWN
 
     def __init__(self, mjcf_path):
@@ -28,10 +49,12 @@ class BaseMJCFParser:
         self.base_link = root_bodies[0]
 
         self.body_parent_id = None
-        self.data_dict = None
+        self.mj_model_dict = None
+
         self.meshed_path = None
         self.mesh_file_type = None
         self.body_name2idx = None
+        self.ground_dict = None
 
     def print_body_tree(self, body_element=None, indent=0):
         if body_element is None:
@@ -53,16 +76,7 @@ class BaseMJCFParser:
         self.parse_mujoco_xml()
 
     def parse_mujoco_model(self):
-        def data2dict(data, name, dim_num=None):
-            assert len(data.shape) == 1, f"Data shape should be 1D, but got {data.shape}"
-            if dim_num is None:
-                dim_num = data.shape[0]
-            if dim_num == 1:
-                return {name: data[0]}
-            else:
-                return {f"{name}{i}": data[i] for i in range(dim_num)}
-
-        self.data_dict = defaultdict(list)
+        self.mj_model_dict = defaultdict(list)
 
         model = mujoco.MjModel.from_xml_path(self.mjcf_path)
         self.body_parent_id = model.body_parentid.tolist()
@@ -73,7 +87,7 @@ class BaseMJCFParser:
             body_dict = {"name": body.name}
             for key in ["pos", "quat", "inertia", "ipos", "iquat", "mass"]:
                 body_dict |= data2dict(getattr(body, key), key)
-            self.data_dict["body"].append(body_dict)
+            self.mj_model_dict["body"].append(body_dict)
 
         for jnt_idx in range(model.njnt):
             jnt = model.joint(jnt_idx)
@@ -82,7 +96,7 @@ class BaseMJCFParser:
                 jnt_dict |= data2dict(getattr(jnt, key), key)
             for key in ["armature", "damping", "frictionloss", "stiffness", "bodyid"]:
                 jnt_dict |= data2dict(getattr(jnt, key), key, 1)
-            self.data_dict["joint"].append(jnt_dict)
+            self.mj_model_dict["joint"].append(jnt_dict)
 
         for geom_idx in range(model.ngeom):
             geom = model.geom(geom_idx)
@@ -91,18 +105,25 @@ class BaseMJCFParser:
                 geom_dict = {"type": gtype}
                 for key in ["pos", "quat", "size", "contype", "conaffinity", "bodyid", "friction"]:
                     geom_dict |= data2dict(getattr(geom, key), key)
-                self.data_dict["collision"].append(geom_dict)
+                self.mj_model_dict["collision"].append(geom_dict)
             elif gtype == "mesh":
                 pass # deal later
+            elif gtype == "plane":
+                assert geom.bodyid == 0, "Plane should be in worldbody."
+                self.ground_dict = {
+                    "contype": str(geom.contype[0]),
+                    "conaffinity": str(geom.conaffinity[0]),
+                    "friction": " ".join(map(str, geom.friction)),
+                }
             else:
-                raise NotImplementedError
+                raise NotImplementedError(f"Unsupported geom type: {gtype}")
 
         for actuator_idx in range(model.nu):
             actuator = model.actuator(actuator_idx)
-            joint = self.data_dict["joint"][actuator.trnid[0]]["name"]
+            joint = self.mj_model_dict["joint"][actuator.trnid[0]]["name"]
             actuator_dict = {"name": actuator.name, "joint": joint}
             actuator_dict |= data2dict(actuator.ctrlrange, "ctrlrange")
-            self.data_dict["actuator"].append(actuator_dict)
+            self.mj_model_dict["actuator"].append(actuator_dict)
 
 
     def parse_mujoco_xml(self):
@@ -120,11 +141,13 @@ class BaseMJCFParser:
             body_idx = self.body_name2idx[body_elem.get("name")]
             for geom_elem in body_elem.findall("geom"):
                 if geom_elem.get("type") == "mesh":
-                    self.data_dict["mesh"].append({
-                        "type": "mesh",
-                        "mesh": geom_elem.get("mesh"),
-                        "bodyid": body_idx
-                    })
+                    mesh_dict = {"type": "mesh", "mesh": geom_elem.get("mesh"), "bodyid": body_idx}
+                    mesh_dict |= str2dict(geom_elem.get("pos", "0 0 0"), "pos")
+                    mesh_dict |= str2dict(geom_elem.get("quat", "1 0 0 0"), "quat")
+                    mesh_dict |= str2dict(geom_elem.get("rgba", "0.5 0.5 0.5 1"), "rgba")
+                    mesh_dict |= str2dict(geom_elem.get("contype", "1"), "contype")
+                    mesh_dict |= str2dict(geom_elem.get("conaffinity", "1"), "conaffinity")
+                    self.mj_model_dict["mesh"].append(mesh_dict)
 
 
     def save(self, save_path):
@@ -140,52 +163,16 @@ class BaseMJCFParser:
         meta_info = {
             "format_type": self.format_type.value,
             "body_parent_id": self.body_parent_id,
-            "mesh_file_type": self.mesh_file_type
+            "mesh_file_type": self.mesh_file_type,
+            "ground": self.ground_dict
         }
         with open(meta_path, "w") as json_file:
             json.dump(meta_info, json_file, indent=4)
 
         # save dict data
-        for name, data_dict in self.data_dict.items():
+        for name, data_dict in self.mj_model_dict.items():
             df = pd.DataFrame(data_dict).sort_index(axis=1)
             df.to_csv(os.path.join(save_path, f"{name}.csv"), index=False)
-
-
-        # attrs = {}
-        # for name in ["joint", "inertial"]:
-        #     attrs[name] = set(sum([list(d[name].keys()) for d in self.data_dict], start=[]))
-        # for name in ["mesh", "collision"]:
-        #     attrs[name] = set(sum([list(dd.keys()) for d in self.data_dict
-        #                            for dd in d[f"{name}_list"]], start=[]))
-        #
-        # tables = defaultdict(lambda: defaultdict(list))
-        # for body_idx, body_data in enumerate(self.data_dict):
-        #     tables["body"]["body_idx"].append(body_idx)
-        #     tables["body"]["name"].append(body_data["name"])
-        #     tables["body"]["pos"].append(body_data["pos"])
-        #
-        #     for name in ["joint", "inertial"]:
-        #         tables[name]["body_idx"].append(body_idx)
-        #         for attr in attrs[name]:
-        #             tables[name][attr].append(body_data[name].get(attr, None))
-        #
-        #     for name in ["mesh", "collision"]:
-        #         for d in body_data[f"{name}_list"]:
-        #             tables[name]["body_idx"].append(body_idx)
-        #             for attr in attrs[name]:
-        #                 tables[name][attr].append(d.get(attr, None))
-        #
-        # for name in ["body", "joint", "inertial", "mesh", "collision"]:
-        #     df = pd.DataFrame(tables[name])
-        #     if name in ["body", "joint", "inertial"]:
-        #         df.set_index("body_idx", inplace=True)
-        #     else:
-        #         df.index.name = "idx"
-        #     columns_to_str = [col for col in df.columns if col not in ['body_idx', 'idx']]
-        #     df[columns_to_str] = df[columns_to_str].astype(str)
-        #     df.to_csv(os.path.join(save_path, f"{name}.csv"))
-
-
 
 
 if __name__ == "__main__":
@@ -194,7 +181,7 @@ if __name__ == "__main__":
     mjcf_path = os.path.join(MJCF_ROBOTS_PATH, "kuavo_s45", "mjcf", "biped_s45.xml")
     save_path = os.path.join(ROBOTS_PATH, "kuavo_s45")
 
-    parser = BaseMJCFParser(mjcf_path)
+    parser = UnifiedMJCFParser(mjcf_path)
     parser.print_body_tree()
     parser.parse()
     parser.save(save_path)
