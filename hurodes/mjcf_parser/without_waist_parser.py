@@ -1,9 +1,9 @@
 import os
 
-from hurodes.mjcf_parser.base_parser import BaseMJCFParser
+from hurodes.mjcf_parser.unified_parser import UnifiedMJCFParser
 from hurodes.contants import RobotFormatType
 
-class WithoutWaistMJCFParser(BaseMJCFParser):
+class WithoutWaistMJCFParser(UnifiedMJCFParser):
     format_type = RobotFormatType.WITHOUT_WAIST
 
     def __init__(self, mjcf_path):

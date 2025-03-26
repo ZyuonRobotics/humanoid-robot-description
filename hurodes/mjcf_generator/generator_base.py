@@ -17,7 +17,7 @@ class MJCFGeneratorBase(ABC):
         if disable_gravity:
             ET.SubElement(option, 'flag', gravity="disable")
         if timestep:
-            ET.SubElement(option, 'timestep', dt=str(timestep))
+            option.set('timestep', str(timestep))
 
     @property
     def mjcf_str(self):

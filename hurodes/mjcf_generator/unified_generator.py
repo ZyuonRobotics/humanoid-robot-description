@@ -78,8 +78,6 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.mesh_file_type = None
         self.ground_dict = None
 
-        self.xml_root = ET.Element('mujoco')
-
     def load(self):
         with open(os.path.join(self.ehdf_path, "meta.json"), "r") as f:
             meta_info = json.load(f)
