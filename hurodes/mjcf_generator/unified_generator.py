@@ -90,7 +90,8 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
         self.data_dict = {}
         for name in ["body", "joint", "mesh", "collision", "actuator"]:
-            self.data_dict[name] = pd.read_csv(os.path.join(self.ehdf_path, f"{name}.csv")).to_dict("records")
+            if os.path.exists(os.path.join(self.ehdf_path, f"{name}.csv")):
+                self.data_dict[name] = pd.read_csv(os.path.join(self.ehdf_path, f"{name}.csv")).to_dict("records")
 
     def generate_single_body_xml(self, parent_node, body_idx):
         # body element
@@ -190,7 +191,8 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.add_visual()
         self.add_asset()
         self.add_worldbody()
-        self.add_actuator()
+        if "actuator" in self.data_dict:
+            self.add_actuator()
 
 if __name__ == '__main__':
     from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
