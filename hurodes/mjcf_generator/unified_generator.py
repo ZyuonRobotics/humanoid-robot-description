@@ -11,34 +11,8 @@ import pandas as pd
 
 from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
 from hurodes.contants import RobotFormatType
+from hurodes.mjcf_generator.constants import *
 
-DEFAULT_GROUND_TEXTURE_ATTR = {
-    "type": "2d",
-    "name": "groundplane",
-    "builtin": "checker",
-    "mark": "edge",
-    "rgb1": "0.2 0.3 0.4",
-    "rgb2": "0.1 0.2 0.3",
-    "markrgb": "0.8 0.8 0.8",
-    "width": "300",
-    "height": "300"
-}
-DEFAULT_GROUND_MATERIAL_ATTR ={
-    "name": "groundplane",
-    "texture": "groundplane",
-    "texuniform": "true",
-    "texrepeat": "5 5",
-    "reflectance": "0.2"
-}
-
-DEFAULT_GROUND_GEOM_ATTR = {
-    "name": "floor",
-    "size": "0 0 0.05",
-    "type": "plane",
-    "material": "groundplane",
-    "condim": "3",
-    "conaffinity": "15"
-}
 
 def dict2str(data, name):
     keys_in_dict = [key for key in data.keys() if key.startswith(name)]
@@ -127,55 +101,51 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
         return body_elem
 
-    def generate_all_body_xml(self, parent, current_index):
+    def add_all_body(self, parent=None, current_index=0):
+        if parent is None:
+            parent = self.get_elem("worldbody")
         for child_index, parent_idx in enumerate(self.body_parent_id):
             if child_index == parent_idx: # skip world body
                 continue
             elif parent_idx == current_index:
                 body_elem = self.generate_single_body_xml(parent, child_index)
-                self.generate_all_body_xml(body_elem, child_index)
+                self.add_all_body(body_elem, child_index)
 
     def add_compiler(self):
-        compiler_elem = ET.SubElement(self.xml_root, 'compiler', attrib={
+        self.get_elem("compiler").attrib = {
             "angle": "radian",
             "autolimits": "true",
             "meshdir": os.path.join(self.ehdf_path, "meshes")
-        })
+        }
 
     def add_visual(self):
-        visual_elem = ET.SubElement(self.xml_root, 'visual')
+        visual_elem = self.get_elem("visual")
         headlight_elem = ET.SubElement(visual_elem, 'headlight',
                                        attrib={"diffuse": "0.6 0.6 0.6", "ambient": "0.3 0.3 0.3", "specular": "0 0 0"})
         rgba_elem = ET.SubElement(visual_elem, 'rgba', attrib={"haze": "0.15 0.25 0.35 1"})
         global_elem = ET.SubElement(visual_elem, 'global', attrib={"azimuth": "160", "elevation": "-20"})
 
     def add_asset(self):
-        asset_elem = ET.SubElement(self.xml_root, 'asset')
+        asset_elem = self.get_elem("asset")
 
-        ET.SubElement(asset_elem, "texture",
-                      attrib={"type": "skybox", "builtin": "gradient", "rgb1": "0.3 0.5 0.7", "rgb2": "0 0 0",
-                              "width": "512", "height": "3072"})
+        ET.SubElement(asset_elem, "texture", attrib=DEFAULT_SKY_TEXTURE_ATTR)
         ET.SubElement(asset_elem, "texture", attrib=DEFAULT_GROUND_TEXTURE_ATTR)
         ET.SubElement(asset_elem, "material", attrib=DEFAULT_GROUND_MATERIAL_ATTR)
 
         for mesh, file_type in self.mesh_file_type.items():
-            mesh_elem = ET.SubElement(asset_elem, 'mesh',
-                                      attrib={"name": mesh, "file": f"{mesh}.{file_type}"})
+            mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": mesh, "file": f"{mesh}.{file_type}"})
 
-    def add_ground(self, worldbody_elem):
+    def add_ground(self):
         ground_attr = DEFAULT_GROUND_GEOM_ATTR
         if self.ground_dict is not None:
             for key, value in self.ground_dict.items():
                 ground_attr[key] = value
-        geom_elem = ET.SubElement(worldbody_elem, 'geom', attrib=ground_attr)
+        geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
 
     def add_worldbody(self):
-        world_body = ET.SubElement(self.xml_root, 'worldbody')
-        light_elem = ET.SubElement(world_body, "light",
-                                   attrib={"pos": "0 0 3.5", "dir": "0 0 -1", "directional": "true"})
-        self.add_ground(world_body)
-
-        self.generate_all_body_xml(world_body, 0)
+        light_elem = ET.SubElement(self.get_elem("worldbody"), "light", attrib=DEFAULT_SKY_LIGHT_ATTR)
+        self.add_ground()
+        self.add_all_body()
 
     def add_actuator(self):
         actuator_elem = ET.SubElement(self.xml_root, 'actuator')

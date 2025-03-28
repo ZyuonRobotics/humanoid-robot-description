@@ -13,11 +13,18 @@ class MJCFGeneratorBase(ABC):
         self.disable_gravity = disable_gravity
         self.time_step = timestep
 
-        option = ET.SubElement(self.xml_root, 'option')
         if disable_gravity:
-            ET.SubElement(option, 'flag', gravity="disable")
+            ET.SubElement(self.get_elem("option"), 'flag', gravity="disable")
         if timestep:
-            option.set('timestep', str(timestep))
+            self.get_elem("option").set('timestep', str(timestep))
+
+    def get_elem(self, elem_name):
+        elem_num = len(self.xml_root.findall(elem_name))
+        assert elem_num <= 1, f"Multiple {elem_name} elements found"
+        if elem_num == 1:
+            return self.xml_root.find(elem_name)
+        else:
+            return ET.SubElement(self.xml_root, elem_name)
 
     @property
     def mjcf_str(self):
