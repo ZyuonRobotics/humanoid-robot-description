@@ -11,7 +11,6 @@ import pandas as pd
 
 from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
 from hurodes.contants import RobotFormatType
-from hurodes.mjcf_generator.constants import *
 
 
 def dict2str(data, name):
@@ -50,7 +49,6 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.body_parent_id = None
         self.data_dict = None
         self.mesh_file_type = None
-        self.ground_dict = None
 
     def load(self):
         with open(os.path.join(self.ehdf_path, "meta.json"), "r") as f:
@@ -118,34 +116,11 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
             "meshdir": os.path.join(self.ehdf_path, "meshes")
         }
 
-    def add_visual(self):
-        visual_elem = self.get_elem("visual")
-        headlight_elem = ET.SubElement(visual_elem, 'headlight',
-                                       attrib={"diffuse": "0.6 0.6 0.6", "ambient": "0.3 0.3 0.3", "specular": "0 0 0"})
-        rgba_elem = ET.SubElement(visual_elem, 'rgba', attrib={"haze": "0.15 0.25 0.35 1"})
-        global_elem = ET.SubElement(visual_elem, 'global', attrib={"azimuth": "160", "elevation": "-20"})
-
-    def add_asset(self):
+    def add_mesh(self):
         asset_elem = self.get_elem("asset")
-
-        ET.SubElement(asset_elem, "texture", attrib=DEFAULT_SKY_TEXTURE_ATTR)
-        ET.SubElement(asset_elem, "texture", attrib=DEFAULT_GROUND_TEXTURE_ATTR)
-        ET.SubElement(asset_elem, "material", attrib=DEFAULT_GROUND_MATERIAL_ATTR)
 
         for mesh, file_type in self.mesh_file_type.items():
             mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": mesh, "file": f"{mesh}.{file_type}"})
-
-    def add_ground(self):
-        ground_attr = DEFAULT_GROUND_GEOM_ATTR
-        if self.ground_dict is not None:
-            for key, value in self.ground_dict.items():
-                ground_attr[key] = value
-        geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
-
-    def add_worldbody(self):
-        light_elem = ET.SubElement(self.get_elem("worldbody"), "light", attrib=DEFAULT_SKY_LIGHT_ATTR)
-        self.add_ground()
-        self.add_all_body()
 
     def add_actuator(self):
         actuator_elem = ET.SubElement(self.xml_root, 'actuator')
@@ -156,11 +131,11 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
     def generate(self):
         self.add_compiler()
-        self.add_visual()
-        self.add_asset()
-        self.add_worldbody()
+        self.add_mesh()
+        self.add_all_body()
         if "actuator" in self.data_dict:
             self.add_actuator()
+
 
 if __name__ == '__main__':
     from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
