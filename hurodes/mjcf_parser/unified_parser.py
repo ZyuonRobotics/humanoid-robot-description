@@ -4,13 +4,12 @@ import json
 from collections import defaultdict
 import shutil
 
-from colorama import Fore, Style
 import pandas as pd
 import numpy as np
 import mujoco
 
 from hurodes.contants import RobotFormatType
-from hurodes.utils import is_int, is_float
+from hurodes.utils import is_int, is_float, get_elem_tree_str
 
 def str2dict(string, name, dim_num=None):
     elements = string.split()
@@ -56,20 +55,8 @@ class UnifiedMJCFParser:
         self.body_name2idx = None
         self.ground_dict = None
 
-    def print_body_tree(self, body_element=None, indent=0):
-        if body_element is None:
-            body_element = self.base_link
-
-        colors = [Fore.BLUE, Fore.GREEN, Fore.YELLOW, Fore.RED, Fore.MAGENTA, Fore.CYAN]
-        color = colors[indent % len(colors)]
-        indent_symbols = "│ " * indent + "├─ "
-        colored_indent = color + indent_symbols + Style.RESET_ALL
-
-        name = body_element.get("name", "unnamed")
-        print(colored_indent + Fore.WHITE + name)
-
-        for child in body_element.findall("body"):
-            self.print_body_tree(child, indent + 1)
+    def print_body_tree(self, colorful=False):
+        print(get_elem_tree_str(self.base_link, colorful=colorful))
 
     def parse(self):
         self.parse_mujoco_model()

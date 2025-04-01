@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 
 from hurodes.mjcf_generator.constants import *
+from hurodes.utils import get_elem_tree_str
 
 class MJCFGeneratorBase(ABC):
     def __init__(
@@ -10,15 +11,18 @@ class MJCFGeneratorBase(ABC):
             disable_gravity=False,
             timestep=0.001
     ):
-        self.xml_root = ET.Element('mujoco')
         self.disable_gravity = disable_gravity
         self.time_step = timestep
+
+        self.xml_root = None
         self.ground_dict = None
 
-        if disable_gravity:
+    def init_xml_root(self):
+        self.xml_root = ET.Element('mujoco')
+        if self.disable_gravity:
             ET.SubElement(self.get_elem("option"), 'flag', gravity="disable")
-        if timestep:
-            self.get_elem("option").set('timestep', str(timestep))
+        if self.time_step:
+            self.get_elem("option").set('timestep', str(self.time_step))
 
     def get_elem(self, elem_name):
         elem_num = len(self.xml_root.findall(elem_name))
@@ -64,6 +68,7 @@ class MJCFGeneratorBase(ABC):
         geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
 
     def build(self):
+        self.init_xml_root()
         self.load()
         self.generate()
         self.add_scene()
@@ -74,6 +79,19 @@ class MJCFGeneratorBase(ABC):
             with open(file_path, "w") as f:
                 f.write(self.mjcf_str)
         return self.mjcf_str
+
+    @property
+    def all_body_names(self):
+        body_list = [elem.get("name") for elem in self.xml_root.findall(".//body")]
+        assert None not in body_list, "None body name found"
+        return body_list
+
+    @property
+    def body_tree_str(self):
+        worldbody_elem = self.get_elem("worldbody")
+        body_elems = worldbody_elem.findall("body")
+        assert len(body_elems) == 1, "Multiple body elements found"
+        return get_elem_tree_str(body_elems[0], colorful=False)
 
 class MJCFGeneratorComposite(MJCFGeneratorBase):
     def __init__(self, generators, **kwargs):
@@ -86,6 +104,7 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
 
     def generate(self):
         for generator in self.generators:
+            generator.init_xml_root()
             generator.generate()
             for top_elem in generator.xml_root:
                 new_top_elem = self.get_elem(top_elem.tag)
