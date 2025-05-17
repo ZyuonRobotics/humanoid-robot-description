@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List, Dict, Union
 
 import xml.etree.ElementTree as ET
 
@@ -94,16 +95,21 @@ class MJCFGeneratorBase(ABC):
         return get_elem_tree_str(body_elems[0], colorful=False)
 
 class MJCFGeneratorComposite(MJCFGeneratorBase):
-    def __init__(self, generators, **kwargs):
+    def __init__(self, generators: Union[List, Dict], **kwargs):
         super().__init__(**kwargs)
-        self.generators = generators
+        if isinstance(generators, dict):
+            self.generators = generators
+        elif isinstance(generators, list):
+            self.generators = {f"generator{i}": g for i, g in enumerate(generators)}
+        else:
+            raise NotImplementedError
 
     def load(self):
-        for generator in self.generators:
+        for generator in self.generators.values():
             generator.load()
 
     def generate(self):
-        for generator in self.generators:
+        for generator in self.generators.values():
             generator.init_xml_root()
             generator.generate()
             for top_elem in generator.xml_root:
