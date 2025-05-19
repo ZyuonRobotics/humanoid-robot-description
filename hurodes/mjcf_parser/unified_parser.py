@@ -23,6 +23,8 @@ def str2dict(string, name, dim_num=None):
     return data2dict(data, name, dim_num)
 
 def data2dict(data, name, dim_num=None):
+    if type(data) == int or type(data) == float:
+        return {name: data}
     assert len(data.shape) == 1, f"Data shape should be 1D, but got {data.shape}"
     if dim_num is None:
         dim_num = data.shape[0]
@@ -60,13 +62,9 @@ class UnifiedMJCFParser:
         print(get_elem_tree_str(self.base_link, colorful=colorful))
 
     def parse(self):
-        self.parse_mujoco_model()
-        self.parse_mujoco_xml()
-
-    def parse_mujoco_model(self):
         self.mj_model_dict = defaultdict(list)
         spec = mujoco.MjSpec.from_file(self.mjcf_path)
-        model = mujoco.MjModel.from_xml_path(self.mjcf_path)
+        model = spec.compile()
         self.body_parent_id = model.body_parentid.tolist()
         self.body_name2idx = {}
         for body_idx in range(model.nbody):
@@ -112,12 +110,11 @@ class UnifiedMJCFParser:
             self.mj_model_dict["actuator"].append(actuator_dict)
 
 
-    def parse_mujoco_xml(self):
         self.meshed_path, self.mesh_file_type = {}, {}
-        spec = mujoco.MjSpec.from_file(self.mjcf_path)
         meshdir = Path(spec.meshdir)
+        parent = Path(self.mjcf_path).parent
         for mesh in spec.meshes:
-            mesh_file = (self.mjcf_path.parent / meshdir / mesh.file).resolve()
+            mesh_file = (parent / meshdir / mesh.file).resolve()
             mesh_type = mesh.file.split('.')[-1]
             self.meshed_path[mesh.name] = mesh_file
             self.mesh_file_type[mesh.name] = mesh_type
@@ -133,31 +130,33 @@ class UnifiedMJCFParser:
                     mesh_dict |= data2dict(getattr(geom, 'contype', np.array([1])), "contype")
                     mesh_dict |= data2dict(getattr(geom, 'conaffinity', np.array([1])), "conaffinity")
                     self.mj_model_dict["mesh"].append(mesh_dict)
+        self.mj_model_dict["mesh"] = sorted(self.mj_model_dict["mesh"], key=lambda x: x["bodyid"])
 
 
     def save(self, save_path):
-        os.makedirs(save_path, exist_ok=True)
+        save_path = Path(save_path)
+        save_path.mkdir(parents=True, exist_ok=True)
 
-        # copy mesh files
-        os.makedirs(os.path.join(save_path, "meshes"), exist_ok=True)
         for name, path in self.meshed_path.items():
-            shutil.copy(path, os.path.join(save_path, "meshes", f"{name}.{self.mesh_file_type[name]}"))
+            new_mesh_file = save_path / "meshes" / f"{name}.{self.mesh_file_type[name]}"
+            new_mesh_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(path, new_mesh_file)
 
-        # save meta info, including body tree
-        meta_path = os.path.join(save_path, "meta.json")
+        meta_path = save_path / "meta.json"
+        meta_path.touch(exist_ok=True)
         meta_info = {
             "format_type": self.format_type.value,
             "body_parent_id": self.body_parent_id,
             "mesh_file_type": self.mesh_file_type,
             "ground": self.ground_dict
         }
-        with open(meta_path, "w") as json_file:
-            json.dump(meta_info, json_file, indent=4)
+        json.dump(meta_info, open(meta_path, "w"), indent=4)
 
         # save dict data
         for name, data_dict in self.mj_model_dict.items():
             df = pd.DataFrame(data_dict).sort_index(axis=1)
-            df.to_csv(os.path.join(save_path, f"{name}.csv"), index=False)
+            df.to_csv(save_path / f"{name}.csv", index=False)
+
 
 
 if __name__ == "__main__":
