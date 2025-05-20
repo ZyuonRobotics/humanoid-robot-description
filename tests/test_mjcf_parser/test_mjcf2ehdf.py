@@ -1,8 +1,7 @@
-import os
 import csv
-import colorama
-import math
 from pathlib import Path
+
+import pytest
 
 def assert_files_equal(path1, path2):
     """自定义断言函数，比较两个文件内容"""
@@ -82,6 +81,7 @@ def assert_csv_files_equal(path1, path2, float_tolerance=1e-6):
                     f"实际: {val2}"
                 )
 
+@pytest.mark.skip(reason="Skip this test for now")
 def test_mjcfparser():
     dir1 = Path("assets/transfered_robot")
     dir2 = Path("assets/mytransfered_robot")

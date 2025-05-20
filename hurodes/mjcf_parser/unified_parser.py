@@ -1,4 +1,3 @@
-import os
 import xml.etree.ElementTree as ET
 import json
 import shutil
@@ -150,7 +149,8 @@ class UnifiedMJCFParser:
             "mesh_file_type": self.mesh_file_type,
             "ground": self.ground_dict
         }
-        json.dump(meta_info, open(meta_path, "w"), indent=4)
+        with open(meta_path, "w") as json_file:
+            json.dump(meta_info, json_file, indent=4)
 
         # save dict data
         for name, data_dict in self.mj_model_dict.items():
@@ -162,8 +162,8 @@ class UnifiedMJCFParser:
 if __name__ == "__main__":
     from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
 
-    mjcf_path = os.path.join(MJCF_ROBOTS_PATH, "kuavo_s45", "mjcf", "biped_s45.xml")
-    save_path = os.path.join(ROBOTS_PATH, "kuavo_s45")
+    mjcf_path = Path(MJCF_ROBOTS_PATH, "kuavo_s45", "mjcf", "biped_s45.xml")
+    save_path = Path(ROBOTS_PATH, "kuavo_s45")
 
     parser = UnifiedMJCFParser(mjcf_path)
     parser.print_body_tree()

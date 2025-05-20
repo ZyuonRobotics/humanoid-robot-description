@@ -1,4 +1,5 @@
-import os
+# import os
+from pathlib import Path
 import xml.etree.ElementTree as ET
 import json
 import math
@@ -51,7 +52,7 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.mesh_file_type = None
 
     def load(self):
-        with open(os.path.join(self.ehdf_path, "meta.json"), "r") as f:
+        with open(Path(self.ehdf_path, "meta.json"), "r") as f:
             meta_info = json.load(f)
         assert RobotFormatType(meta_info["format_type"]) == self.format_type, f"Format type mismatch"
         self.body_parent_id = meta_info["body_parent_id"]
@@ -60,8 +61,10 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
         self.data_dict = {}
         for name in ["body", "joint", "mesh", "collision", "actuator"]:
-            if os.path.exists(os.path.join(self.ehdf_path, f"{name}.csv")):
-                self.data_dict[name] = pd.read_csv(os.path.join(self.ehdf_path, f"{name}.csv")).to_dict("records")
+            # if os.path.exists(os.path.join(self.ehdf_path, f"{name}.csv")):
+            component_csv = Path(self.ehdf_path, f"{name}.csv")
+            if component_csv.exists():
+                self.data_dict[name] = pd.read_csv(component_csv).to_dict("records")
 
     def generate_single_body_xml(self, parent_node, body_idx):
         # body element
@@ -113,7 +116,7 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.get_elem("compiler").attrib = {
             "angle": "radian",
             "autolimits": "true",
-            "meshdir": os.path.join(self.ehdf_path, "meshes")
+            "meshdir": str(Path(self.ehdf_path, "meshes"))
         }
 
     def add_mesh(self):
@@ -142,9 +145,9 @@ if __name__ == '__main__':
     import mujoco
     import mujoco.viewer
 
-    ehdf_path = os.path.join(ROBOTS_PATH, "kuavo_s45")
+    ehdf_path = Path(ROBOTS_PATH, "kuavo_s45")
     generator = UnifiedMJCFGenerator(ehdf_path)
-    xml_string = generator.export(os.path.join(ehdf_path, "robot.xml"))
+    xml_string = generator.export(Path(ehdf_path, "robot.xml"))
 
     m = mujoco.MjModel.from_xml_string(xml_string)
     d = mujoco.MjData(m)
