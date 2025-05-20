@@ -1,8 +1,8 @@
-import os
 import xml.etree.ElementTree as ET
 import json
-from collections import defaultdict
 import shutil
+from collections import defaultdict
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
@@ -22,6 +22,8 @@ def str2dict(string, name, dim_num=None):
     return data2dict(data, name, dim_num)
 
 def data2dict(data, name, dim_num=None):
+    if type(data) == int or type(data) == float:
+        return {name: data}
     assert len(data.shape) == 1, f"Data shape should be 1D, but got {data.shape}"
     if dim_num is None:
         dim_num = data.shape[0]
@@ -59,13 +61,9 @@ class UnifiedMJCFParser:
         print(get_elem_tree_str(self.base_link, colorful=colorful))
 
     def parse(self):
-        self.parse_mujoco_model()
-        self.parse_mujoco_xml()
-
-    def parse_mujoco_model(self):
         self.mj_model_dict = defaultdict(list)
-
-        model = mujoco.MjModel.from_xml_path(self.mjcf_path)
+        spec = mujoco.MjSpec.from_file(self.mjcf_path)
+        model = spec.compile()
         self.body_parent_id = model.body_parentid.tolist()
         self.body_name2idx = {}
         for body_idx in range(model.nbody):
@@ -105,48 +103,46 @@ class UnifiedMJCFParser:
             else:
                 raise NotImplementedError(f"Unsupported geom type: {gtype}")
 
-        for actuator_idx in range(model.nu):
-            actuator = model.actuator(actuator_idx)
-            joint = self.mj_model_dict["joint"][actuator.trnid[0]]["name"]
-            actuator_dict = {"name": actuator.name, "joint": joint}
+        for actuator in spec.actuators:
+            actuator_dict = {"name": actuator.name, "joint": actuator.target}
             actuator_dict |= data2dict(actuator.ctrlrange, "ctrlrange")
             self.mj_model_dict["actuator"].append(actuator_dict)
 
 
-    def parse_mujoco_xml(self):
         self.meshed_path, self.mesh_file_type = {}, {}
-        if "meshdir" in self.root.find("compiler").attrib:
-            meshdir = self.root.find("compiler").attrib["meshdir"]
-            meshdir = os.path.join(os.path.dirname(self.mjcf_path), meshdir)
-        else:
-            meshdir = os.path.dirname(self.mjcf_path)
-        for mesh_elem in self.root.find("asset").findall("mesh"):
-            self.meshed_path[mesh_elem.get("name")] = os.path.join(meshdir, mesh_elem.get("file"))
-            self.mesh_file_type[mesh_elem.get("name")] = mesh_elem.get("file").split(".")[-1]
+        meshdir = Path(spec.meshdir)
+        parent = Path(self.mjcf_path).parent
+        for mesh in spec.meshes:
+            mesh_file = (parent / meshdir / mesh.file).resolve()
+            mesh_type = mesh.file.split('.')[-1]
+            self.meshed_path[mesh.name] = mesh_file
+            self.mesh_file_type[mesh.name] = mesh_type
 
-        for body_elem in self.root.findall(".//body"):
-            body_idx = self.body_name2idx[body_elem.get("name")]
-            for geom_elem in body_elem.findall("geom"):
-                if geom_elem.get("type") == "mesh":
-                    mesh_dict = {"type": "mesh", "mesh": geom_elem.get("mesh"), "bodyid": body_idx}
-                    mesh_dict |= str2dict(geom_elem.get("pos", "0 0 0"), "pos")
-                    mesh_dict |= str2dict(geom_elem.get("quat", "1 0 0 0"), "quat")
-                    mesh_dict |= str2dict(geom_elem.get("rgba", "0.5 0.5 0.5 1"), "rgba")
-                    mesh_dict |= str2dict(geom_elem.get("contype", "1"), "contype")
-                    mesh_dict |= str2dict(geom_elem.get("conaffinity", "1"), "conaffinity")
+        for body in spec.bodies:
+            idx = body.id
+            for geom in body.geoms:
+                if geom.type == mujoco.mjtGeom.mjGEOM_MESH:
+                    mesh_dict = {"type": "mesh", "mesh": geom.meshname, "bodyid": idx}
+                    mesh_dict |= data2dict(getattr(geom, 'pos', np.array([0,0,0])), "pos")
+                    mesh_dict |= data2dict(getattr(geom, 'quat', np.array([1,0,0,0])), "quat")
+                    mesh_dict |= data2dict(getattr(geom, 'rgba', np.array([0.5,0.5,0.5,1])), "rgba")
+                    mesh_dict |= data2dict(getattr(geom, 'contype', np.array([1])), "contype")
+                    mesh_dict |= data2dict(getattr(geom, 'conaffinity', np.array([1])), "conaffinity")
                     self.mj_model_dict["mesh"].append(mesh_dict)
+        self.mj_model_dict["mesh"] = sorted(self.mj_model_dict["mesh"], key=lambda x: x["bodyid"])
 
 
     def save(self, save_path):
-        os.makedirs(save_path, exist_ok=True)
+        save_path = Path(save_path)
+        save_path.mkdir(parents=True, exist_ok=True)
 
-        # copy mesh files
-        os.makedirs(os.path.join(save_path, "meshes"), exist_ok=True)
         for name, path in self.meshed_path.items():
-            shutil.copy(path, os.path.join(save_path, "meshes", f"{name}.{self.mesh_file_type[name]}"))
+            new_mesh_file = save_path / "meshes" / f"{name}.{self.mesh_file_type[name]}"
+            new_mesh_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(path, new_mesh_file)
 
-        # save meta info, including body tree
-        meta_path = os.path.join(save_path, "meta.json")
+        meta_path = save_path / "meta.json"
+        meta_path.touch(exist_ok=True)
         meta_info = {
             "format_type": self.format_type.value,
             "body_parent_id": self.body_parent_id,
@@ -159,14 +155,15 @@ class UnifiedMJCFParser:
         # save dict data
         for name, data_dict in self.mj_model_dict.items():
             df = pd.DataFrame(data_dict).sort_index(axis=1)
-            df.to_csv(os.path.join(save_path, f"{name}.csv"), index=False)
+            df.to_csv(save_path / f"{name}.csv", index=False)
+
 
 
 if __name__ == "__main__":
     from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
 
-    mjcf_path = os.path.join(MJCF_ROBOTS_PATH, "kuavo_s45", "mjcf", "biped_s45.xml")
-    save_path = os.path.join(ROBOTS_PATH, "kuavo_s45")
+    mjcf_path = Path(MJCF_ROBOTS_PATH, "kuavo_s45", "mjcf", "biped_s45.xml")
+    save_path = Path(ROBOTS_PATH, "kuavo_s45")
 
     parser = UnifiedMJCFParser(mjcf_path)
     parser.print_body_tree()
