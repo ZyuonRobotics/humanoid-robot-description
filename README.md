@@ -54,6 +54,7 @@ you need to transfer URDF to MJCF first, then convert MJCF to EHDF. Add an exten
 ```
 
 Make sure these issues are checked:
+- mesh files are not too large: use scripts/opt_mesh.py to reduce faces
 - mujoco element: to tell the compiler where to find the mesh files
 - dummy link and joint: to make the robot a floating base
 

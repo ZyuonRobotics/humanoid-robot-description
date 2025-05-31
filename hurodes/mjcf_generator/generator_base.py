@@ -109,6 +109,7 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
             generator.load()
 
     def generate(self):
+        # TODO: make option unique
         for generator in self.generators.values():
             generator.init_xml_root()
             generator.generate()
