@@ -35,33 +35,30 @@ assets/robots/your_robot_name/
 
 ### URDF to EHDF
 
-you need to transfer URDF to MJCF first, then convert MJCF to EHDF. Add an extension to original URDF file like
+To convert URDF to EHDF, you first need to convert URDF to MJCF format. You can use the provided `urdf2mjcf.py` script which automates this process.
 
-```xml
+The script performs the following operations:
+- Automatically adds required MuJoCo elements to the URDF file (mujoco compiler settings, dummy link, and floating joint)
+- Optimizes mesh files by reducing face count to improve simulation performance
+- Converts the modified URDF to MJCF format using MuJoCo's built-in converter
+- Saves the output MJCF file in the same directory as the input URDF
 
-<robot name="darwin">
-    <mujoco>
-        <compiler meshdir="../mesh/darwin/" balanceinertia="true" discardvisual="false"/>
-    </mujoco>
-    <link name="dummy_link"/>
-    <joint name="dummy_to_base_link" type="floating">
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <parent link="dummy_link"/>
-        <child link="base_link"/>
-    </joint>
-    ...
-</robot>
-```
-
-Make sure these issues are checked:
-- mesh files are not too large: use scripts/opt_mesh.py to reduce faces
-- mujoco element: to tell the compiler where to find the mesh files
-- dummy link and joint: to make the robot a floating base
-
-Then run mojoco by following command, and drag the URDF file to mujoco window to see the robot, and save the MJCF file by click "Save xml" button.
+Usage:
 ```bash
-python -m mujoco.viewer
+python scripts/urdf2mjcf.py --urdf_path path/to/your/robot.urdf --robot_name your_robot_name --keep_percent 8000
 ```
+
+Parameters:
+- `--urdf_path`: Path to the input URDF file
+- `--robot_name`: Name for the output MJCF file
+- `--keep_percent`: Target number of faces for mesh optimization (default: 8000)
+
+The script automatically handles:
+- Mesh optimization to reduce computational load
+- Adding MuJoCo compiler directives with correct mesh directory paths
+- Creating dummy link and floating joint for proper robot base configuration
+
+After conversion, you can then convert the MJCF to EHDF using the standard MJCF to EHDF workflow.
 
 ### EHDF to MJCF
 
