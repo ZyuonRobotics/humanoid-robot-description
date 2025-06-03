@@ -51,6 +51,8 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.data_dict = None
         self.mesh_file_type = None
 
+        self.all_collision_names = []
+
     def load(self):
         with open(Path(self.ehdf_path, "meta.json"), "r") as f:
             meta_info = json.load(f)
@@ -88,14 +90,18 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         # mesh element
         mesh_data_list = find_by_body_id(self.data_dict["mesh"], body_idx)
         for mesh_data in mesh_data_list:
-            mesh_elem = ET.SubElement(body_elem, 'geom')
+            mesh_elem = ET.SubElement(body_elem, 'geom', name=mesh_data["mesh"])
+            # TODO: split different mesh
+            self.all_collision_names.append(mesh_data["mesh"])
             for key in ["type", "mesh", "contype", "conaffinity", "pos", "quat", "rgba"]:
                 mesh_elem.set(key, dict2str(mesh_data, key))
 
         # collision element
         collision_data_list = find_by_body_id(self.data_dict["collision"], body_idx)
-        for collision_data in collision_data_list:
-            collision_elem = ET.SubElement(body_elem, 'geom')
+        for idx, collision_data in enumerate(collision_data_list):
+            collision_name = f"{body_data["name"]}_{idx}_{collision_data["type"]}"
+            collision_elem = ET.SubElement(body_elem, 'geom', name=collision_name)
+            self.all_collision_names.append(collision_name)
             collision_elem.set("rgba", "0 0.7 0.3 0.1")
             for key in ["type", "pos", "quat", "size", "contype", "conaffinity", "friction"]:
                 collision_elem.set(key, dict2str(collision_data, key))
