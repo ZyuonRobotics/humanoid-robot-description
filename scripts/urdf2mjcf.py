@@ -3,18 +3,67 @@ import trimesh
 import shutil
 import mujoco
 from pathlib import Path
-import xml.etree.ElementTree as ET
 from tqdm import tqdm
+from typing import Union
+import xml.etree.ElementTree as ET
 
-from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
-
-
-MESHES_PATH = lambda x: Path(x).parent.parent / "meshes"
-OPTIM_MESHES_PATH = lambda x: Path(x).parent.parent / "optimized_meshes"
 MUJOCO_MIN_FACES = 1
 MUJOCO_MAX_FACES = 200000
 
-def check_meshes(urdf_path) -> bool:
+def get_optim_meshes_path(urdf_path: Union[str, Path]) -> Path:
+    """
+    Get the path for optimized meshes based on the URDF file path.
+    
+    Args:
+        urdf_path (str or Path): Path to the URDF file.
+    
+    Returns:
+        optim_meshes_path (Path): Path to the optimized meshes directory.
+    """
+    urdf_path = Path(urdf_path)
+    optim_meshes_path = urdf_path.parent.parent / "optimized_meshes"
+    
+    if not optim_meshes_path.exists():
+        optim_meshes_path.mkdir(parents=True, exist_ok=True)
+    
+    return optim_meshes_path
+
+def get_meshes_path(urdf_path: Union[str, Path], meshes_path = None) -> Path:
+    """
+    Get the meshes path based on the URDF file path.
+    
+    Args:
+        urdf_path (str or Path): Path to the URDF file.
+        meshes_path (str or Path, optional): Custom meshes path. If not provided, it defaults to the parent directory of the URDF file.
+    
+    Returns:
+        meshes_path (Path): Path to the meshes directory.
+    """
+    if meshes_path is None:
+        urdf_path = Path(urdf_path)
+        meshes_path = urdf_path.parent.parent / "meshes"
+    else:
+        meshes_path = Path(meshes_path)
+    
+    if not meshes_path.exists():
+        raise FileNotFoundError(f"Meshes path does not exist: {meshes_path}")
+    
+    return meshes_path
+
+def get_meshes(meshes_path):
+    """
+    Get all mesh files from the meshes directory.
+    
+    Args:
+        meshes_path (str or Path): Path to the meshes directory
+        
+    Yields:
+        Path: Path objects for each mesh file found
+    """
+    return filter(lambda f: f.suffix.lower() in ['.stl', '.obj'], Path(meshes_path).glob('*'))
+
+
+def check_meshes(urdf_path, meshes_path=None) -> bool:
     """
     Check if the URDF project contains meshes. Just check if there is a meshes path
     Args:
@@ -22,10 +71,10 @@ def check_meshes(urdf_path) -> bool:
     Returns:
         bool: True if the URDF contains meshes, False otherwise.
     """
-    mesh_path = MESHES_PATH(urdf_path)
-    if mesh_path.exists() and mesh_path.is_dir():
-        print(f"Mesh path found: {mesh_path}")
-        print(f"The number of meshes: {len(list(mesh_path.glob('*.STL')))}")
+    meshes_path = get_meshes_path(urdf_path, meshes_path)
+    if meshes_path.exists() and meshes_path.is_dir():
+        print(f"Mesh path found: {meshes_path}")
+        print(f"The number of meshes: {len(list(get_meshes(meshes_path)))}")
         return True
     return False
 
@@ -62,35 +111,38 @@ def simplify_obj(input_path, output_path, target_faces=8000):
     # Export the simplified mesh to the output path
     simplified_mesh.export(output_path)
 
-def optimize_meshes_faces(urdf_path, target_faces=8000):
+def optimize_meshes_faces(urdf_path, meshes_path, target_faces=8000):
     """
-    Optimize all STL mesh files in the URDF project by reducing their face count.
+    Optimize all mesh files in the URDF project by reducing their face count.
     
-    This function processes all .STL files in the meshes directory, simplifies them
+    This function processes all mesh files in the meshes directory, simplifies them
     to reduce computational load, and saves the optimized versions to a separate directory.
     
     Args:
         urdf_path (str or Path): Path to the URDF file
+        meshes_path (str or Path): Path to the meshes directory
         target_faces (int): Target number of faces for each optimized mesh
     """
     # Get the source meshes directory path
-    meshes = MESHES_PATH(urdf_path)
+    meshes_path = get_meshes_path(urdf_path, meshes_path)
     
     # Get the destination directory for optimized meshes
-    optimize_meshes_path = OPTIM_MESHES_PATH(urdf_path)
+    optimize_meshes_path = get_optim_meshes_path(urdf_path)
     
     # Create the optimized meshes directory if it doesn't exist
     if not optimize_meshes_path.exists():
         optimize_meshes_path.mkdir(parents=True, exist_ok=True)
     
-    # Process all STL files with a progress bar
-    with tqdm(total=len(list(meshes.glob('*.STL'))), desc="Optimizing meshes") as pbar:
-        for mesh_file in meshes.glob('*.STL'):
+    # Get all mesh files
+    meshes = list(get_meshes(meshes_path))
+    
+    # Process all mesh files with a progress bar
+    with tqdm(total=len(meshes), desc="Optimizing meshes") as pbar:
+        for mesh_file in meshes:
             # Update progress bar description with current file name
             pbar.set_description(f"Optimizing {mesh_file.name}")
             
             # Define the output path for the optimized mesh
-            # backup_mesh_file = backup_meshes / mesh_file.name  # Commented backup option
             optimize_mesh_file = optimize_meshes_path / mesh_file.name
             
             # Simplify the current mesh file
@@ -104,11 +156,12 @@ def optimize_meshes_faces(urdf_path, target_faces=8000):
 @click.option("--urdf_path", prompt='URDF path', type=str, help="Path to the input URDF file (xml).")
 @click.option("--keep_percent", type=int, default=500, help="Percentage of faces to keep in the mesh optimization.")
 @click.option("--robot_name", prompt='Robot name', type=str, help="Name of the robot.")
-def main(urdf_path, keep_percent, robot_name):
+@click.option("--meshes_path", type=str, default=None, help="Path to the meshes directory. If not provided, defaults to the parent directory of the URDF file.")
+def main(urdf_path, keep_percent, meshes_path, robot_name):
     """
     Convert a URDF file to MJCF format and save it in the specified directory.
     """
-    assert check_meshes(urdf_path), "The URDF project does not contain meshes. Please check again."
+    assert check_meshes(urdf_path, meshes_path), "The URDF project does not contain meshes. Please check again."
 
     tree = ET.parse(urdf_path)
     root = tree.getroot()
@@ -120,38 +173,28 @@ def main(urdf_path, keep_percent, robot_name):
     
     # Create mujoco tag
     mujoco_elem = ET.Element('mujoco')
-    compiler_elem = ET.SubElement(mujoco_elem, 'compiler')
-    compiler_elem.set('meshdir', str(OPTIM_MESHES_PATH(urdf_path).resolve()))
-    compiler_elem.set('balanceinertia', 'true')
-    compiler_elem.set('discardvisual', 'false')
+    optim_meshes_path = str(get_optim_meshes_path(urdf_path).resolve())
+    ET.SubElement(mujoco_elem, 'compiler', {'meshdir': optim_meshes_path, 'balanceinertia': 'true', 'discardvisual': 'false'})
     
     # Create dummy_link
-    dummy_link = ET.Element('link')
-    dummy_link.set('name', 'dummy_link')
+    dummy_link = ET.Element('link', {'name': 'dummy_link'})
     
     # Create floating joint
-    dummy_joint = ET.Element('joint')
-    dummy_joint.set('name', 'dummy_to_base_link')
-    dummy_joint.set('type', 'floating')
+    dummy_joint = ET.Element('joint', {'name': 'dummy_to_base_link', 'type': 'floating'})
     
     # Add origin
-    origin_elem = ET.SubElement(dummy_joint, 'origin')
-    origin_elem.set('xyz', '0 0 0')
-    origin_elem.set('rpy', '0 0 0')
+    ET.SubElement(dummy_joint, 'origin', {'xyz': '0 0 0', 'rpy': '0 0 0'})
     
     # Add parent and child
-    parent_elem = ET.SubElement(dummy_joint, 'parent')
-    parent_elem.set('link', 'dummy_link')
-    
-    child_elem = ET.SubElement(dummy_joint, 'child')
-    child_elem.set('link', 'base_link')
+    ET.SubElement(dummy_joint, 'parent', {'link': 'dummy_link'})
+    ET.SubElement(dummy_joint, 'child', {'link': 'base_link'})
     
     # Insert new elements at the beginning of the robot tag
     root.insert(0, mujoco_elem)
     root.insert(1, dummy_link)
     root.insert(2, dummy_joint)
     
-    optimize_meshes_faces(urdf_path, keep_percent)
+    optimize_meshes_faces(urdf_path, meshes_path, keep_percent)
 
     xml_string = ET.tostring(root, encoding='utf-8', xml_declaration=True).decode('utf-8')
     mjspec = mujoco.MjSpec.from_string(xml_string)
