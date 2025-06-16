@@ -156,17 +156,17 @@ def optimize_meshes_faces(urdf_path, meshes_path, max_faces=8000):
 @click.option("--urdf_path", prompt='URDF path', type=str, help="Path to the input URDF file (xml).")
 @click.option("--max_faces", type=int, default=8000, help="Max faces to keep in the mesh optimization.")
 @click.option("--meshes_path", type=str, default=None, help="Path to the meshes directory. If not provided, defaults to the parent directory of the URDF file.")
-def main(urdf_path, max_faces, meshes_path):
+@click.option("--default_actuator", type=bool, default=True)
+def main(urdf_path, max_faces, meshes_path, default_actuator):
     """
     Convert a URDF file to MJCF format and save it in the specified directory.
     """
     assert check_meshes(urdf_path, meshes_path), "The URDF project does not contain meshes. Please check again."
 
-    tree = ET.parse(urdf_path)
-    root = tree.getroot()
+    urdf_root = ET.parse(urdf_path).getroot()
     
     # Ensure the root element is a robot tag
-    if root.tag != 'robot':
+    if urdf_root.tag != 'robot':
         print("Warning: Root element is not 'robot'")
         return
     
@@ -189,16 +189,32 @@ def main(urdf_path, max_faces, meshes_path):
     ET.SubElement(dummy_joint, 'child', {'link': 'base_link'})
     
     # Insert new elements at the beginning of the robot tag
-    root.insert(0, mujoco_elem)
-    root.insert(1, dummy_link)
-    root.insert(2, dummy_joint)
+    urdf_root.insert(0, mujoco_elem)
+    urdf_root.insert(1, dummy_link)
+    urdf_root.insert(2, dummy_joint)
     
     optimize_meshes_faces(urdf_path, meshes_path, max_faces)
 
-    xml_string = ET.tostring(root, encoding='utf-8', xml_declaration=True).decode('utf-8')
-    mjspec = mujoco.MjSpec.from_string(xml_string)
+    urdf_string = ET.tostring(urdf_root, encoding='utf-8', xml_declaration=True).decode('utf-8')
+    mjspec = mujoco.MjSpec.from_string(urdf_string)
+    mjcf_string = mjspec.to_xml()
+
+    if default_actuator:
+        mjcf_root = ET.fromstring(mjcf_string)
+        actuator_elem = ET.SubElement(mjcf_root, 'actuator')
+        for joint_spec in mjspec.joints:
+            if int(joint_spec.type) == 3: # only deal with hinges
+                motor_elem = ET.SubElement(
+                    actuator_elem, 'motor',
+                    name=f"{joint_spec.name}_motor",
+                    joint=joint_spec.name
+                )
+        tree = ET.ElementTree(mjcf_root)
+        ET.indent(tree, space="  ", level=0)
+        mjcf_string = ET.tostring(mjcf_root, encoding='utf-8', xml_declaration=True).decode('utf-8')
+
     output_path = Path(urdf_path).parent / f"{Path(urdf_path).stem}.xml"
-    output_path.write_text(mjspec.to_xml(), encoding='utf-8')
+    output_path.write_text(mjcf_string, encoding='utf-8')
 
 
 if __name__ == "__main__":
