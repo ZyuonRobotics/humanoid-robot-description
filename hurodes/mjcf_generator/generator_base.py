@@ -109,12 +109,42 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
             generator.load()
 
     def generate(self):
-        # TODO: make option unique
-        for generator in self.generators.values():
+        for gen_name, generator in self.generators.items():
             generator.init_xml_root()
             generator.generate()
             for top_elem in generator.xml_root:
                 new_top_elem = self.get_elem(top_elem.tag)
                 new_top_elem.attrib |= top_elem.attrib
                 for elem in top_elem:
+                    # Add prefix to avoid name conflicts
+                    self._add_prefix_to_element(elem, gen_name)
                     new_top_elem.append(elem)
+
+    def _add_prefix_to_element(self, elem, prefix):
+        """
+        Add prefix to element names and references to avoid conflicts between generators.
+        
+        Args:
+            elem: XML element to add prefix to
+            prefix: Prefix string to add (e.g., "generator0")
+        """
+        # Attributes that typically contain names that need prefixing
+        name_attributes = ['name', 'joint', 'body', 'geom', 'site', 'camera', 'light', 'mesh', 
+                          'material', 'texture', 'class', 'actuator', 'sensor', 'tendon']
+        
+        # Add prefix to name-related attributes
+        for attr in name_attributes:
+            if attr in elem.attrib:
+                elem.attrib[attr] = f"{prefix}_{elem.attrib[attr]}"
+        
+        # Handle special cases for references in certain tags
+        if elem.tag == 'joint' and 'body' in elem.attrib:
+            elem.attrib['body'] = f"{prefix}_{elem.attrib['body']}"
+        elif elem.tag == 'geom' and 'body' in elem.attrib:
+            elem.attrib['body'] = f"{prefix}_{elem.attrib['body']}"
+        elif elem.tag == 'site' and 'body' in elem.attrib:
+            elem.attrib['body'] = f"{prefix}_{elem.attrib['body']}"
+        
+        # Recursively apply to child elements
+        for child in elem:
+            self._add_prefix_to_element(child, prefix)
