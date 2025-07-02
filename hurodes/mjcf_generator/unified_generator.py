@@ -47,9 +47,9 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         super().__init__(disable_gravity=disable_gravity, timestep=timestep)
         self.ehdf_path = ehdf_path
 
-        self.body_parent_id = None
-        self.data_dict = None
-        self.mesh_file_type = None
+        self.body_parent_id: list[int] = []
+        self.data_dict: dict[str, list[dict]] = {}
+        self.mesh_file_type: dict[str, str] = {}
 
         self.all_collision_names = []
 
@@ -63,7 +63,6 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
         self.data_dict = {}
         for name in ["body", "joint", "mesh", "collision", "actuator"]:
-            # if os.path.exists(os.path.join(self.ehdf_path, f"{name}.csv")):
             component_csv = Path(self.ehdf_path, f"{name}.csv")
             if component_csv.exists():
                 self.data_dict[name] = pd.read_csv(component_csv).to_dict("records")
@@ -132,6 +131,7 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
             mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": mesh, "file": f"{mesh}.{file_type}"})
 
     def add_actuator(self):
+        assert self.xml_root is not None, "xml_root is not initialized"
         actuator_elem = ET.SubElement(self.xml_root, 'actuator')
         for actuator_data in self.data_dict["actuator"]:
             motor_elem = ET.SubElement(actuator_elem, 'motor')
@@ -155,9 +155,9 @@ if __name__ == '__main__':
     generator = UnifiedMJCFGenerator(ehdf_path)
     xml_string = generator.export(Path(ehdf_path, "robot.xml"))
 
-    m = mujoco.MjModel.from_xml_string(xml_string)
-    d = mujoco.MjData(m)
+    m = mujoco.MjModel.from_xml_string(xml_string) # type: ignore
+    d = mujoco.MjData(m) # type: ignore
     with mujoco.viewer.launch_passive(m, d) as viewer:
         while viewer.is_running():
-            mujoco.mj_step(m, d)
+            mujoco.mj_step(m, d) # type: ignore
             viewer.sync()

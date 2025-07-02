@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Union
-
 import xml.etree.ElementTree as ET
 
 from hurodes.mjcf_generator.constants import *
@@ -15,8 +14,8 @@ class MJCFGeneratorBase(ABC):
         self.disable_gravity = disable_gravity
         self.time_step = timestep
 
-        self.xml_root = None
-        self.ground_dict = None
+        self.xml_root: ET.Element | None = None
+        self.ground_dict: dict | None = None
 
     def init_xml_root(self):
         self.xml_root = ET.Element('mujoco')
@@ -25,28 +24,30 @@ class MJCFGeneratorBase(ABC):
         if self.time_step:
             self.get_elem("option").set('timestep', str(self.time_step))
 
-    def get_elem(self, elem_name):
-        elem_num = len(self.xml_root.findall(elem_name))
-        assert elem_num <= 1, f"Multiple {elem_name} elements found"
-        if elem_num == 1:
-            return self.xml_root.find(elem_name)
+    def get_elem(self, elem_name) -> ET.Element:
+        assert self.xml_root is not None, "xml_root is not initialized"
+        elems = self.xml_root.findall(elem_name)
+        assert len(elems) <= 1, f"Multiple {elem_name} elements found"
+        if len(elems) == 1:
+            return elems[0]
         else:
             return ET.SubElement(self.xml_root, elem_name)
 
     @property
-    def mjcf_str(self):
+    def mjcf_str(self) -> str:
         tree = ET.ElementTree(self.xml_root)
         ET.indent(tree, space="  ", level=0)
+        assert self.xml_root is not None, "xml_root is not initialized"
         res = ET.tostring(self.xml_root, encoding='unicode', method='xml')
         return res
 
     @abstractmethod
     def load(self):
-        raise NotImplemented("load method is not implemented")
+        raise NotImplementedError("load method is not implemented")
 
     @abstractmethod
     def generate(self):
-        raise NotImplemented("generate method is not implemented")
+        raise NotImplementedError("generate method is not implemented")
 
     def add_scene(self):
         # visual
@@ -83,6 +84,7 @@ class MJCFGeneratorBase(ABC):
 
     @property
     def all_body_names(self):
+        assert self.xml_root is not None, "xml_root is not initialized"
         body_list = [elem.get("name") for elem in self.xml_root.findall(".//body")]
         assert None not in body_list, "None body name found"
         return body_list

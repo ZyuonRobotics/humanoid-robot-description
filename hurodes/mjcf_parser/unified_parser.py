@@ -49,11 +49,11 @@ class UnifiedMJCFParser:
         assert len(root_bodies) == 1, "There should be exactly one root <body> element in the <worldbody> element."
         self.base_link = root_bodies[0]
 
-        self.body_parent_id = None
-        self.mj_model_dict = None
+        self.body_parent_id: list[int] = []
+        self.mj_model_dict: dict[str, list[dict]] = {}
 
-        self.meshed_path = None
-        self.mesh_file_type = None
+        self.meshed_path: dict[str, Path] = {}
+        self.mesh_file_type: dict[str, str] = {}
         self.body_name2idx = None
         self.ground_dict = None
 
@@ -62,7 +62,7 @@ class UnifiedMJCFParser:
 
     def parse(self):
         self.mj_model_dict = defaultdict(list)
-        spec = mujoco.MjSpec.from_file(self.mjcf_path)
+        spec = mujoco.MjSpec.from_file(self.mjcf_path) # type: ignore
         model = spec.compile()
         self.body_parent_id = model.body_parentid.tolist()
         self.body_name2idx = {}
@@ -121,7 +121,7 @@ class UnifiedMJCFParser:
         for body in spec.bodies:
             idx = body.id
             for geom in body.geoms:
-                if geom.type == mujoco.mjtGeom.mjGEOM_MESH:
+                if geom.type == mujoco.mjtGeom.mjGEOM_MESH: # type: ignore
                     mesh_dict = {"type": "mesh", "mesh": geom.meshname, "bodyid": idx}
                     mesh_dict |= data2dict(getattr(geom, 'pos', np.array([0,0,0])), "pos")
                     mesh_dict |= data2dict(getattr(geom, 'quat', np.array([1,0,0,0])), "quat")

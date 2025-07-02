@@ -15,11 +15,11 @@ def main(robot_name):
     generator = UnifiedMJCFGenerator(ehdf_path)
     xml_string = generator.export(os.path.join(ehdf_path, "robot.xml"))
 
-    m = mujoco.MjModel.from_xml_string(xml_string)
-    d = mujoco.MjData(m)
+    m = mujoco.MjModel.from_xml_string(xml_string) # type: ignore
+    d = mujoco.MjData(m) # type: ignore
     with mujoco.viewer.launch_passive(m, d) as viewer:
         while viewer.is_running():
-            mujoco.mj_step(m, d)
+            mujoco.mj_step(m, d) # type: ignore
             viewer.sync()
 
 if __name__ == "__main__":

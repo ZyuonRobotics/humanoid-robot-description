@@ -34,8 +34,3 @@ def get_elem_tree_str(elem, indent=0, elem_tag="body", colorful=False):
     for child in elem.findall(elem_tag):
         res += get_elem_tree_str(child, indent + 1, colorful=colorful)
     return res
-
-if __name__ == '__main__':
-    for s in ["11", "-11", "1.1", "ss"]:
-        print(f"{s} is int: {is_int(s)}")
-        print(f"{s} is float: {is_float(s)}")

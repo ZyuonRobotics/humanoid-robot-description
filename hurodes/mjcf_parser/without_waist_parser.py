@@ -17,17 +17,3 @@ class WithoutWaistMJCFParser(UnifiedMJCFParser):
 
     def save(self, save_path=None):
         super(WithoutWaistMJCFParser, self).save(save_path)
-
-
-
-if __name__ == '__main__':
-    from hurodes import MJCF_ROBOTS_PATH
-
-    mjcf_path = os.path.join(MJCF_ROBOTS_PATH, "kuavo_s45", "mjcf", "biped_s45.xml")
-    parser = WithoutWaistMJCFParser(mjcf_path)
-
-    parser.print_body_tree()
-
-    body_tree, bodies_data = parser.parse()
-    print(body_tree)
-    print(bodies_data)
