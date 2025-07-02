@@ -27,8 +27,7 @@ def test_find_by_body_id():
     res = find_by_body_id(all_data, 0)
     assert len(res) == 2
     assert all("bodyid" not in d for d in res)
-    assert any(d["name"] == "root" for d in res)
-    assert any(d["name"] == "root2" for d in res)
+    assert set(d["name"] for d in res) == {"root", "root2"}
 
 def test_unified_mjcf_generator_init(tmp_path):
     # This is a placeholder for UnifiedMJCFGenerator tests

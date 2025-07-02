@@ -44,4 +44,4 @@ def test_unified_mjcf_parser_init(tmp_path):
     parser = UnifiedMJCFParser(str(xml_path))
     assert parser.mjcf_path == str(xml_path)
     assert parser.worldbody is not None
-    assert parser.base_link is not None 
+    assert parser.base_link is not None

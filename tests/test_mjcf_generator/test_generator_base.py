@@ -22,9 +22,9 @@ def test_mjcf_generator_build():
     assert option_elem.tag == 'option'
 
 def test_mjcf_generator_timestep():
-    generator = TestMJCFGeneratorBase(timestep=0.01)
+    generator = TestMJCFGeneratorBase(timestep=0.1)
     generator.init_xml_root()
-    assert generator.get_elem("option").get("timestep") == "0.01"
+    assert generator.get_elem("option").get("timestep") == "0.1"
 
 def test_add_scene_and_build():
     generator = TestMJCFGeneratorBase()

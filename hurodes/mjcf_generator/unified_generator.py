@@ -15,6 +15,11 @@ from hurodes.contants import RobotFormatType
 
 
 def dict2str(data, name):
+    """
+    Convert a dictionary to a string.
+    If the dictionary has only one key starting with name, return the value of the key.
+    If the dictionary has multiple keys starting with name, return a space-separated string of the values.
+    """
     keys_in_dict = [key for key in data.keys() if key.startswith(name)]
     assert len(keys_in_dict) > 0, f"No key starts with {name} in data: {data}"
     if len(keys_in_dict) == 1:
@@ -26,6 +31,9 @@ def dict2str(data, name):
         return " ".join([str(data[f"{name}{i}"]) for i in range(len(keys_in_dict))])
 
 def find_by_body_id(all_data, body_id):
+    """
+    Find all data with the same bodyid.
+    """
     res = []
     for data in all_data:
         if data["bodyid"] == body_id:

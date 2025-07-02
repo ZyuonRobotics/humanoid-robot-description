@@ -12,6 +12,9 @@ from hurodes.contants import RobotFormatType
 from hurodes.utils import is_int, is_float, get_elem_tree_str
 
 def str2dict(string, name, dim_num=None):
+    """
+    Convert a string to a dictionary.
+    """
     elements = string.split()
     if all([is_int(elem) for elem in elements]):
         data = np.array(elements, dtype=int)
@@ -22,6 +25,11 @@ def str2dict(string, name, dim_num=None):
     return data2dict(data, name, dim_num)
 
 def data2dict(data, name, dim_num=None):
+    """
+    Convert a numpy array to a dictionary.
+    If the array is a scalar, return a dictionary with the key name and the value as the scalar.
+    If the dim_num is not None, use only first dim_num data, or use all data, return a dictionary with the name and index as the key, and corresponding data as the value.
+    """
     if type(data) == int or type(data) == float:
         return {name: data}
     assert len(data.shape) == 1, f"Data shape should be 1D, but got {data.shape}"
@@ -54,8 +62,8 @@ class UnifiedMJCFParser:
 
         self.meshed_path: dict[str, Path] = {}
         self.mesh_file_type: dict[str, str] = {}
-        self.body_name2idx = None
-        self.ground_dict = None
+        self.body_name2idx: dict[str, int] = {}
+        self.ground_dict: dict[str, str] = {}
 
     def print_body_tree(self, colorful=False):
         print(get_elem_tree_str(self.base_link, colorful=colorful))
