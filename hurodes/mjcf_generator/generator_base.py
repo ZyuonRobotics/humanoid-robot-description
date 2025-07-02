@@ -46,7 +46,7 @@ class MJCFGeneratorBase(ABC):
         raise NotImplementedError("load method is not implemented")
 
     @abstractmethod
-    def generate(self):
+    def generate(self, prefix=None):
         raise NotImplementedError("generate method is not implemented")
 
     def add_scene(self):
@@ -95,28 +95,3 @@ class MJCFGeneratorBase(ABC):
         body_elems = worldbody_elem.findall("body")
         assert len(body_elems) == 1, "Multiple body elements found"
         return get_elem_tree_str(body_elems[0], colorful=False)
-
-class MJCFGeneratorComposite(MJCFGeneratorBase):
-    def __init__(self, generators: Union[List, Dict], **kwargs):
-        super().__init__(**kwargs)
-        if isinstance(generators, dict):
-            self.generators = generators
-        elif isinstance(generators, list):
-            self.generators = {f"generator{i}": g for i, g in enumerate(generators)}
-        else:
-            raise NotImplementedError
-
-    def load(self):
-        for generator in self.generators.values():
-            generator.load()
-
-    def generate(self):
-        # TODO: make option unique
-        for generator in self.generators.values():
-            generator.init_xml_root()
-            generator.generate()
-            for top_elem in generator.xml_root:
-                new_top_elem = self.get_elem(top_elem.tag)
-                new_top_elem.attrib |= top_elem.attrib
-                for elem in top_elem:
-                    new_top_elem.append(elem)

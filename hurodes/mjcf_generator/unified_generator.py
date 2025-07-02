@@ -42,6 +42,8 @@ def find_by_body_id(all_data, body_id):
             res.append(data_copy)
     return res
 
+def get_prefix_name(prefix, name):
+    return f"{prefix}_{name}" if prefix else name
 
 class UnifiedMJCFGenerator(MJCFGeneratorBase):
     format_type = RobotFormatType.UNKNOWN
@@ -75,11 +77,12 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
             if component_csv.exists():
                 self.data_dict[name] = pd.read_csv(component_csv).to_dict("records")
 
-    def generate_single_body_xml(self, parent_node, body_idx):
+    def generate_single_body_xml(self, parent_node, body_idx, prefix=None):
         # body element
         body_data = self.data_dict["body"][body_idx]
         body_elem = ET.SubElement(parent_node, 'body')
-        for key in ["name", "pos", "quat"]:
+        body_elem.set("name", get_prefix_name(prefix, dict2str(body_data, "name")))
+        for key in ["pos", "quat"]:
             body_elem.set(key, dict2str(body_data, key))
 
         # inertial element
@@ -90,23 +93,25 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         # joint element
         joint_data_list = find_by_body_id(self.data_dict["joint"], body_idx)
         assert len(joint_data_list) == 1
+        joint_data = joint_data_list[0]
         joint_elem = ET.SubElement(body_elem, 'joint')
-        for key in ["name", "type", "pos", "axis", "range", "damping", "stiffness", "armature", "frictionloss"]:
-            joint_elem.set(key, dict2str(joint_data_list[0], key))
+        joint_elem.set("name", get_prefix_name(prefix, dict2str(joint_data, "name")))
+        for key in ["type", "pos", "axis", "range", "damping", "stiffness", "armature", "frictionloss"]:
+            joint_elem.set(key, dict2str(joint_data, key))
 
         # mesh element
         mesh_data_list = find_by_body_id(self.data_dict["mesh"], body_idx)
         for mesh_data in mesh_data_list:
             mesh_elem = ET.SubElement(body_elem, 'geom')
-            # TODO: split different mesh
+            mesh_elem.set("mesh", get_prefix_name(prefix, mesh_data["mesh"]))
             self.all_collision_names.append(mesh_data["mesh"])
-            for key in ["type", "mesh", "contype", "conaffinity", "pos", "quat", "rgba"]:
+            for key in ["type", "contype", "conaffinity", "pos", "quat", "rgba"]:
                 mesh_elem.set(key, dict2str(mesh_data, key))
 
         # collision element
         collision_data_list = find_by_body_id(self.data_dict["collision"], body_idx)
         for idx, collision_data in enumerate(collision_data_list):
-            collision_name = f"{body_data["name"]}_{idx}_{collision_data["type"]}"
+            collision_name = f"{dict2str(body_data, 'name')}_{idx}_{collision_data['type']}"
             collision_elem = ET.SubElement(body_elem, 'geom')
             self.all_collision_names.append(collision_name)
             collision_elem.set("rgba", "0 0.7 0.3 0.1")
@@ -115,15 +120,15 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
         return body_elem
 
-    def add_all_body(self, parent=None, current_index=0):
+    def add_all_body(self, parent=None, current_index=0, prefix=None):
         if parent is None:
             parent = self.get_elem("worldbody")
         for child_index, parent_idx in enumerate(self.body_parent_id):
             if child_index == parent_idx: # skip world body
                 continue
             elif parent_idx == current_index:
-                body_elem = self.generate_single_body_xml(parent, child_index)
-                self.add_all_body(body_elem, child_index)
+                body_elem = self.generate_single_body_xml(parent, child_index, prefix=prefix)
+                self.add_all_body(body_elem, child_index, prefix=prefix)
 
     def add_compiler(self):
         self.get_elem("compiler").attrib = {
@@ -132,36 +137,35 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
             "meshdir": str(Path(self.ehdf_path, "meshes"))
         }
 
-    def add_mesh(self):
+    def add_mesh(self, prefix=None):
         asset_elem = self.get_elem("asset")
-
         for mesh, file_type in self.mesh_file_type.items():
-            mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": mesh, "file": f"{mesh}.{file_type}"})
+            mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": get_prefix_name(prefix, mesh), "file": f"{mesh}.{file_type}"})
 
-    def add_actuator(self):
+    def add_actuator(self, prefix=None):
         assert self.xml_root is not None, "xml_root is not initialized"
         actuator_elem = ET.SubElement(self.xml_root, 'actuator')
         for actuator_data in self.data_dict["actuator"]:
             motor_elem = ET.SubElement(actuator_elem, 'motor')
-            for key in ["name", "joint", "ctrlrange"]:
-                motor_elem.set(key, dict2str(actuator_data, key))
+            motor_elem.set("name", get_prefix_name(prefix, dict2str(actuator_data, "name")))
+            motor_elem.set("joint", get_prefix_name(prefix, dict2str(actuator_data, "joint")))
+            motor_elem.set("ctrlrange", dict2str(actuator_data, "ctrlrange"))
 
-    def generate(self):
+    def generate(self, prefix=None):
         self.add_compiler()
-        self.add_mesh()
-        self.add_all_body()
+        self.add_mesh(prefix=prefix)
+        self.add_all_body(prefix=prefix)
         if "actuator" in self.data_dict:
-            self.add_actuator()
+            self.add_actuator(prefix=prefix)
 
 
 if __name__ == '__main__':
-    from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
+    from hurodes import ROBOTS_PATH
     import mujoco
     import mujoco.viewer
 
-    ehdf_path = Path(ROBOTS_PATH, "kuavo_s45")
-    generator = UnifiedMJCFGenerator(ehdf_path)
-    xml_string = generator.export(Path(ehdf_path, "robot.xml"))
+    generator = UnifiedMJCFGenerator(Path(ROBOTS_PATH, "kuavo_s45"))
+    xml_string = generator.export(Path(ROBOTS_PATH, "kuavo_s45", "robot.xml"))
 
     m = mujoco.MjModel.from_xml_string(xml_string) # type: ignore
     d = mujoco.MjData(m) # type: ignore
