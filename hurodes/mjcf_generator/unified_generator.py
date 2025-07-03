@@ -143,7 +143,6 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
             mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": get_prefix_name(prefix, mesh), "file": f"{mesh}.{file_type}"})
 
     def add_actuator(self, prefix=None):
-        assert self.xml_root is not None, "xml_root is not initialized"
         actuator_elem = ET.SubElement(self.xml_root, 'actuator')
         for actuator_data in self.data_dict["actuator"]:
             motor_elem = ET.SubElement(actuator_elem, 'motor')

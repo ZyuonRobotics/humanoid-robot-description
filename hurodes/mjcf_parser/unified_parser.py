@@ -51,7 +51,7 @@ class UnifiedMJCFParser:
         self.root = self.tree.getroot()
 
         self.worldbody = self.root.find("worldbody")
-        assert self.worldbody, "No <worldbody> element found in the MJCF file."
+        assert self.worldbody is not None, "No <worldbody> element found in the MJCF file."
 
         root_bodies = self.worldbody.findall("body")
         assert len(root_bodies) == 1, "There should be exactly one root <body> element in the <worldbody> element."

@@ -14,18 +14,24 @@ class MJCFGeneratorBase(ABC):
         self.disable_gravity = disable_gravity
         self.time_step = timestep
 
-        self.xml_root: ET.Element | None = None
+        self._xml_root: ET.Element | None = None
         self.ground_dict: dict | None = None
 
+    @property
+    def xml_root(self) -> ET.Element:
+        if self._xml_root is None:
+            raise RuntimeError("xml_root is not initialized, call init_xml_root first")
+        return self._xml_root
+
+
     def init_xml_root(self):
-        self.xml_root = ET.Element('mujoco')
+        self._xml_root = ET.Element('mujoco')
         if self.disable_gravity:
             ET.SubElement(self.get_elem("option"), 'flag', gravity="disable")
         if self.time_step:
             self.get_elem("option").set('timestep', str(self.time_step))
 
     def get_elem(self, elem_name) -> ET.Element:
-        assert self.xml_root is not None, "xml_root is not initialized"
         elems = self.xml_root.findall(elem_name)
         assert len(elems) <= 1, f"Multiple {elem_name} elements found"
         if len(elems) == 1:
@@ -37,7 +43,6 @@ class MJCFGeneratorBase(ABC):
     def mjcf_str(self) -> str:
         tree = ET.ElementTree(self.xml_root)
         ET.indent(tree, space="  ", level=0)
-        assert self.xml_root is not None, "xml_root is not initialized"
         res = ET.tostring(self.xml_root, encoding='unicode', method='xml')
         return res
 
@@ -84,7 +89,6 @@ class MJCFGeneratorBase(ABC):
 
     @property
     def all_body_names(self):
-        assert self.xml_root is not None, "xml_root is not initialized"
         body_list = [elem.get("name") for elem in self.xml_root.findall(".//body")]
         assert None not in body_list, "None body name found"
         return body_list

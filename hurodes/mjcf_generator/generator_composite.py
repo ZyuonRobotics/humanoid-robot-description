@@ -15,11 +15,11 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
         for generator in self.generators.values():
             generator.load()
 
-    def generate(self):
+    def generate(self, prefix=None):
         # TODO: deal with meshdir of different generators
         for name, generator in self.generators.items():
             generator.init_xml_root()
-            generator.generate(prefix=name)
+            generator.generate(prefix=f"{prefix}_{name}" if prefix is not None else name)
             for top_elem in generator.xml_root:
                 last_top_elem = self.get_elem(top_elem.tag)
                 last_top_elem.attrib |= top_elem.attrib
