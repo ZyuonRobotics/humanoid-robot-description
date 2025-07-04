@@ -50,12 +50,12 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
     def __init__(
             self,
-            ehdf_path,
+            hrdf_path,
             disable_gravity=False,
             timestep=0.001
     ):
         super().__init__(disable_gravity=disable_gravity, timestep=timestep)
-        self.ehdf_path = ehdf_path
+        self.hrdf_path = hrdf_path
 
         self.body_parent_id: list[int] = []
         self.data_dict: dict[str, list[dict]] = {}
@@ -64,7 +64,7 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.all_collision_names = []
 
     def load(self):
-        with open(Path(self.ehdf_path, "meta.json"), "r") as f:
+        with open(Path(self.hrdf_path, "meta.json"), "r") as f:
             meta_info = json.load(f)
         assert RobotFormatType(meta_info["format_type"]) == self.format_type, f"Format type mismatch"
         self.body_parent_id = meta_info["body_parent_id"]
@@ -73,7 +73,7 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
         self.data_dict = {}
         for name in ["body", "joint", "mesh", "collision", "actuator"]:
-            component_csv = Path(self.ehdf_path, f"{name}.csv")
+            component_csv = Path(self.hrdf_path, f"{name}.csv")
             if component_csv.exists():
                 self.data_dict[name] = pd.read_csv(component_csv).to_dict("records")
 
@@ -134,14 +134,14 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.get_elem("compiler").attrib = {
             "angle": "radian",
             "autolimits": "true",
-            "meshdir": str(Path(self.ehdf_path, "meshes"))
+            "meshdir": str(Path(self.hrdf_path, "meshes"))
         }
 
     def add_mesh(self, prefix=None):
         asset_elem = self.get_elem("asset")
         for mesh, file_type in self.mesh_file_type.items():
             # check mesh file exists
-            mesh_file = Path(self.ehdf_path, "meshes", f"{mesh}.{file_type}")
+            mesh_file = Path(self.hrdf_path, "meshes", f"{mesh}.{file_type}")
             assert mesh_file.exists(), f"Mesh file {mesh_file} does not exist"
             mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": get_prefix_name(prefix, mesh), "file": f"{mesh}.{file_type}"})
 

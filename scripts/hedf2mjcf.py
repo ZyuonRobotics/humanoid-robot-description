@@ -10,10 +10,10 @@ from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
 @click.command()
 @click.option("--robot_name", prompt='Robot name', type=str, help="Name of the robot.")
 def main(robot_name):
-    ehdf_path = os.path.join(ROBOTS_PATH, robot_name)
+    hrdf_path = os.path.join(ROBOTS_PATH, robot_name)
 
-    generator = UnifiedMJCFGenerator(ehdf_path)
-    xml_string = generator.export(os.path.join(ehdf_path, "robot.xml"))
+    generator = UnifiedMJCFGenerator(hrdf_path)
+    xml_string = generator.export(os.path.join(hrdf_path, "robot.xml"))
 
     m = mujoco.MjModel.from_xml_string(xml_string) # type: ignore
     d = mujoco.MjData(m) # type: ignore

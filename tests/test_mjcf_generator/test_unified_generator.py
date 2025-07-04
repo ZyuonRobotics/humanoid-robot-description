@@ -31,9 +31,9 @@ def test_find_by_body_id():
 
 def test_unified_mjcf_generator_init(tmp_path):
     # This is a placeholder for UnifiedMJCFGenerator tests
-    # Real tests would require a valid ehdf_path structure
+    # Real tests would require a valid hrdf_path structure
     from hurodes.mjcf_generator.unified_generator import UnifiedMJCFGenerator
-    generator = UnifiedMJCFGenerator(ehdf_path=tmp_path)
-    assert generator.ehdf_path == tmp_path
+    generator = UnifiedMJCFGenerator(hrdf_path=tmp_path)
+    assert generator.hrdf_path == tmp_path
     assert generator.disable_gravity is False
     assert generator.time_step == 0.001
