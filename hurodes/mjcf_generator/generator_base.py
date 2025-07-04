@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Union
-
 import xml.etree.ElementTree as ET
 
 from hurodes.mjcf_generator.constants import *
@@ -15,26 +14,32 @@ class MJCFGeneratorBase(ABC):
         self.disable_gravity = disable_gravity
         self.time_step = timestep
 
-        self.xml_root = None
-        self.ground_dict = None
+        self._xml_root: ET.Element | None = None
+        self.ground_dict: dict | None = None
 
-    def init_xml_root(self):
-        self.xml_root = ET.Element('mujoco')
-        if self.disable_gravity:
-            ET.SubElement(self.get_elem("option"), 'flag', gravity="disable")
-        if self.time_step:
-            self.get_elem("option").set('timestep', str(self.time_step))
+    @property
+    def xml_root(self) -> ET.Element:
+        if self._xml_root is None:
+            self._xml_root = ET.Element('mujoco')
+            if self.disable_gravity:
+                ET.SubElement(self.get_elem("option"), 'flag', gravity="disable")
+            if self.time_step:
+                self.get_elem("option").set('timestep', str(self.time_step))
+        return self._xml_root
 
-    def get_elem(self, elem_name):
-        elem_num = len(self.xml_root.findall(elem_name))
-        assert elem_num <= 1, f"Multiple {elem_name} elements found"
-        if elem_num == 1:
-            return self.xml_root.find(elem_name)
+    def destroy(self):
+        self._xml_root = None
+
+    def get_elem(self, elem_name) -> ET.Element:
+        elems = self.xml_root.findall(elem_name)
+        assert len(elems) <= 1, f"Multiple {elem_name} elements found"
+        if len(elems) == 1:
+            return elems[0]
         else:
             return ET.SubElement(self.xml_root, elem_name)
 
     @property
-    def mjcf_str(self):
+    def mjcf_str(self) -> str:
         tree = ET.ElementTree(self.xml_root)
         ET.indent(tree, space="  ", level=0)
         res = ET.tostring(self.xml_root, encoding='unicode', method='xml')
@@ -42,11 +47,11 @@ class MJCFGeneratorBase(ABC):
 
     @abstractmethod
     def load(self):
-        raise NotImplemented("load method is not implemented")
+        raise NotImplementedError("load method is not implemented")
 
     @abstractmethod
-    def generate(self):
-        raise NotImplemented("generate method is not implemented")
+    def generate(self, prefix=None):
+        raise NotImplementedError("generate method is not implemented")
 
     def add_scene(self):
         # visual
@@ -69,8 +74,8 @@ class MJCFGeneratorBase(ABC):
         geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
 
     def build(self):
-        self.init_xml_root()
         self.load()
+        self.destroy()
         self.generate()
         self.add_scene()
 
@@ -93,28 +98,3 @@ class MJCFGeneratorBase(ABC):
         body_elems = worldbody_elem.findall("body")
         assert len(body_elems) == 1, "Multiple body elements found"
         return get_elem_tree_str(body_elems[0], colorful=False)
-
-class MJCFGeneratorComposite(MJCFGeneratorBase):
-    def __init__(self, generators: Union[List, Dict], **kwargs):
-        super().__init__(**kwargs)
-        if isinstance(generators, dict):
-            self.generators = generators
-        elif isinstance(generators, list):
-            self.generators = {f"generator{i}": g for i, g in enumerate(generators)}
-        else:
-            raise NotImplementedError
-
-    def load(self):
-        for generator in self.generators.values():
-            generator.load()
-
-    def generate(self):
-        # TODO: make option unique
-        for generator in self.generators.values():
-            generator.init_xml_root()
-            generator.generate()
-            for top_elem in generator.xml_root:
-                new_top_elem = self.get_elem(top_elem.tag)
-                new_top_elem.attrib |= top_elem.attrib
-                for elem in top_elem:
-                    new_top_elem.append(elem)

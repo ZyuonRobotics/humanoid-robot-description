@@ -1,68 +1,70 @@
-# Humanoid Robot Description
-Transfer MJCF to EHDF (Exclusive Humanoid Description Format).
+# hurodes
+
+hurodes (Humanoid Robot Description) is a Python toolkit for describing, converting, and processing humanoid robot models. The project introduces a custom HRDF (Humanoid Robot Description Format) that serves as a unified intermediate bridge for conversions between mainstream robot description formats such as MJCF and URDF. It provides generators, parsers, and common scripts to help users efficiently create, convert, and batch process robot models.
+
+---
+
+## Core Features
+
+- **HRDF Unified Intermediate Format**: Uses a structured HRDF directory (CSV + JSON + Mesh) to describe robot information, making batch editing and analysis easy.
+- **Flexible Generators/Parsers**: Supports bidirectional conversion between MJCF ⇆ HRDF ⇆ URDF to meet multi-format collaboration needs.
+- **Multi-Robot Merging**: Through a name prefix mechanism, multiple robot models can be automatically merged into a single MJCF file, supporting collaborative/group simulation.
+- **Scripted Batch Processing**: Built-in command-line scripts make format conversion, model merging, and other common tasks easy.
+- **Modular Design**: Clear package structure for easy secondary development and feature extension.
+
+---
 
 ## Installation
 
-```bash
-conda create -n hurodes python=3.10
-conda activate hurodes
-pip install -e .
-``` 
-
-## Usage
-
-### MJCF to EHDF
-
-You are able to convert MJCF to EHDF by running the following command:
+This project is based on Python 3.8 and above.
 
 ```bash
-python scripts/mjcf_to_ehdf.py --input_path assets/mjcf_robots/ --robot_name your_robot_name
+# Clone the repository
+git clone https://github.com/your-org/humanoid-robot-description.git
+cd humanoid-robot-description
+
+# Standard installation
+pip install .
+
+# Developer installation (includes test dependencies)
+pip install -e .[dev]
 ```
 
-EHDF of your robot will be saved in `assets/robots/your_robot_name`, as the following structure:
+---
+
+## Quick Start
+
+The following examples demonstrate the conversion process between MJCF and URDF:
+
+```bash
+# URDF → MJCF, mjcf will be saved in your urdf_path
+python scripts/urdf2mjcf.py --urdf_path path/to/robot.urdf
+
+# MJCF → HRDF
+python scripts/mjcf2hrdf.py --mjcf_path path/to/robot.xml --robot_name your_robot_name
+
+# HRDF → MJCF, mjcf will be saved in ~/.hurodes/robot/your_robot_name
+python scripts/hrdf2mjcf.py --robot_name your_robot_name
+```
+
+---
+
+## HRDF Format Overview
+
+HRDF stores robot information in a directory structure:
+
 ```
 assets/robots/your_robot_name/
-├── actuator.csv
-├── body.csv
-├── collision.csv
-├── joint.csv
-├── mesh.csv
-├── meshes
-│   ├── base_link.STL
-│   ├── ...
-└── meta.json
+├── actuator.csv     # Actuator parameters
+├── body.csv         # Rigid body information
+├── collision.csv    # Collision parameters
+├── joint.csv        # Joint information
+├── mesh.csv         # Mesh file index
+├── meshes/          # Mesh resources
+└── meta.json        # Metadata (tree structure, ground parameters, etc.)
 ```
 
-### URDF to EHDF
-
-To convert URDF to EHDF, you first need to convert URDF to MJCF format. You can use the provided `urdf2mjcf.py` script which automates this process.
-
-The script performs the following operations:
-- Automatically adds required MuJoCo elements to the URDF file (mujoco compiler settings, dummy link, and floating joint)
-- Optimizes mesh files by reducing face count to improve simulation performance
-- Converts the modified URDF to MJCF format using MuJoCo's built-in converter
-- Saves the output MJCF file in the same directory as the input URDF
-
-Usage:
-```bash
-python scripts/urdf2mjcf.py --urdf_path path/to/your/robot.urdf --robot_name your_robot_name --keep_percent 8000
-```
-
-Parameters:
-- `--urdf_path`: Path to the input URDF file
-- `--robot_name`: Name for the output MJCF file
-- `--keep_percent`: Target number of faces for mesh optimization (default: 8000)
-
-The script automatically handles:
-- Mesh optimization to reduce computational load
-- Adding MuJoCo compiler directives with correct mesh directory paths
-- Creating dummy link and floating joint for proper robot base configuration
-
-After conversion, you can then convert the MJCF to EHDF using the standard MJCF to EHDF workflow.
-
-### EHDF to MJCF
-
-Save the EHDF file in `assets/robots/your_robot_name`, then run the following command:
-```bash
-python scripts/ehdf2mjcf.py --robot_name your_robot_name
-```
+- **Intermediate Bridge**: Serves as a unified data carrier during conversions between MJCF, URDF, and other formats.
+- **Structured Storage**: CSV/JSON files are easy for batch reading, analysis, and version control.
+- **Extensible**: Clear directory structure makes it easy to add new attributes or support new formats.
+- **Project Cache**: Temporary data generated at runtime is stored in the user's home directory under `~/.hurodes`, with no manual maintenance required.

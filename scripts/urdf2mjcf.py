@@ -89,7 +89,10 @@ def simplify_obj(input_path, output_path, max_faces=8000):
     """
     # Load the mesh from the input file
     mesh = trimesh.load(input_path)
-    original_faces = len(mesh.faces)
+    if isinstance(mesh, trimesh.Trimesh):
+        original_faces = len(mesh.faces)
+    else:
+        raise TypeError(f"Loaded mesh is not a trimesh.Trimesh object: {type(mesh)}")
     print(f"Original faces: {original_faces}")
     
     # Check if simplification is needed
@@ -196,7 +199,7 @@ def main(urdf_path, max_faces, meshes_path, default_actuator):
     optimize_meshes_faces(urdf_path, meshes_path, max_faces)
 
     urdf_string = ET.tostring(urdf_root, encoding='utf-8', xml_declaration=True).decode('utf-8')
-    mjspec = mujoco.MjSpec.from_string(urdf_string)
+    mjspec = mujoco.MjSpec.from_string(urdf_string) # type: ignore
     mjcf_string = mjspec.to_xml()
 
     if default_actuator:

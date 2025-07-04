@@ -23,3 +23,8 @@ maintainers = [
     { name = "Honglong Tian" },
     { name = "Chun Li" }
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest"
+]

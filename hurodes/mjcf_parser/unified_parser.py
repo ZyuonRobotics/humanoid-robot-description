@@ -12,6 +12,9 @@ from hurodes.contants import RobotFormatType
 from hurodes.utils import is_int, is_float, get_elem_tree_str
 
 def str2dict(string, name, dim_num=None):
+    """
+    Convert a string to a dictionary.
+    """
     elements = string.split()
     if all([is_int(elem) for elem in elements]):
         data = np.array(elements, dtype=int)
@@ -22,6 +25,11 @@ def str2dict(string, name, dim_num=None):
     return data2dict(data, name, dim_num)
 
 def data2dict(data, name, dim_num=None):
+    """
+    Convert a numpy array to a dictionary.
+    If the array is a scalar, return a dictionary with the key name and the value as the scalar.
+    If the dim_num is not None, use only first dim_num data, or use all data, return a dictionary with the name and index as the key, and corresponding data as the value.
+    """
     if type(data) == int or type(data) == float:
         return {name: data}
     assert len(data.shape) == 1, f"Data shape should be 1D, but got {data.shape}"
@@ -43,26 +51,26 @@ class UnifiedMJCFParser:
         self.root = self.tree.getroot()
 
         self.worldbody = self.root.find("worldbody")
-        assert self.worldbody, "No <worldbody> element found in the MJCF file."
+        assert self.worldbody is not None, "No <worldbody> element found in the MJCF file."
 
         root_bodies = self.worldbody.findall("body")
         assert len(root_bodies) == 1, "There should be exactly one root <body> element in the <worldbody> element."
         self.base_link = root_bodies[0]
 
-        self.body_parent_id = None
-        self.mj_model_dict = None
+        self.body_parent_id: list[int] = []
+        self.mj_model_dict: dict[str, list[dict]] = {}
 
-        self.meshed_path = None
-        self.mesh_file_type = None
-        self.body_name2idx = None
-        self.ground_dict = None
+        self.meshed_path: dict[str, Path] = {}
+        self.mesh_file_type: dict[str, str] = {}
+        self.body_name2idx: dict[str, int] = {}
+        self.ground_dict: dict[str, str] = {}
 
     def print_body_tree(self, colorful=False):
         print(get_elem_tree_str(self.base_link, colorful=colorful))
 
     def parse(self):
         self.mj_model_dict = defaultdict(list)
-        spec = mujoco.MjSpec.from_file(self.mjcf_path)
+        spec = mujoco.MjSpec.from_file(self.mjcf_path) # type: ignore
         model = spec.compile()
         self.body_parent_id = model.body_parentid.tolist()
         self.body_name2idx = {}
@@ -121,7 +129,7 @@ class UnifiedMJCFParser:
         for body in spec.bodies:
             idx = body.id
             for geom in body.geoms:
-                if geom.type == mujoco.mjtGeom.mjGEOM_MESH:
+                if geom.type == mujoco.mjtGeom.mjGEOM_MESH: # type: ignore
                     mesh_dict = {"type": "mesh", "mesh": geom.meshname, "bodyid": idx}
                     mesh_dict |= data2dict(getattr(geom, 'pos', np.array([0,0,0])), "pos")
                     mesh_dict |= data2dict(getattr(geom, 'quat', np.array([1,0,0,0])), "quat")
