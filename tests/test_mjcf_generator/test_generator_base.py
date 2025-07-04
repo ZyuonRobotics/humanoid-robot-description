@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
 
 
-class TestMJCFGeneratorBase(MJCFGeneratorBase):
+class MJCFGeneratorBaseStub(MJCFGeneratorBase):
     def load(self):
         pass
 
@@ -11,9 +11,8 @@ class TestMJCFGeneratorBase(MJCFGeneratorBase):
 
 
 def test_mjcf_generator_build():
-    generator = TestMJCFGeneratorBase()
+    generator = MJCFGeneratorBaseStub()
 
-    generator.init_xml_root()
     assert generator.xml_root is not None
     assert generator.xml_root.tag == 'mujoco'
 
@@ -21,23 +20,24 @@ def test_mjcf_generator_build():
     assert option_elem is not None
     assert option_elem.tag == 'option'
 
+
 def test_mjcf_generator_timestep():
-    generator = TestMJCFGeneratorBase(timestep=0.1)
-    generator.init_xml_root()
+    generator = MJCFGeneratorBaseStub(timestep=0.1)
     assert generator.get_elem("option").get("timestep") == "0.1"
 
+
 def test_add_scene_and_build():
-    generator = TestMJCFGeneratorBase()
+    generator = MJCFGeneratorBaseStub()
     generator.ground_dict = {"size": "1 1 0.1"}
-    generator.init_xml_root()
     generator.add_scene()
     # Check if visual, asset, and worldbody elements are present
     assert generator.get_elem("visual") is not None
     assert generator.get_elem("asset") is not None
     assert generator.get_elem("worldbody") is not None
 
+
 def test_export_returns_string(tmp_path):
-    generator = TestMJCFGeneratorBase()
+    generator = MJCFGeneratorBaseStub()
     xml_str = generator.export()
     assert isinstance(xml_str, str)
     # Test export to file
@@ -46,9 +46,9 @@ def test_export_returns_string(tmp_path):
     assert file_path.exists()
     assert xml_str2 == file_path.read_text()
 
+
 def test_all_body_names_and_body_tree_str():
-    generator = TestMJCFGeneratorBase()
-    generator.init_xml_root()
+    generator = MJCFGeneratorBaseStub()
     worldbody = generator.get_elem("worldbody")
     # Add a single body
     body = ET.SubElement(worldbody, "body", name="test_body")

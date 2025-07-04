@@ -20,16 +20,15 @@ class MJCFGeneratorBase(ABC):
     @property
     def xml_root(self) -> ET.Element:
         if self._xml_root is None:
-            raise RuntimeError("xml_root is not initialized, call init_xml_root first")
+            self._xml_root = ET.Element('mujoco')
+            if self.disable_gravity:
+                ET.SubElement(self.get_elem("option"), 'flag', gravity="disable")
+            if self.time_step:
+                self.get_elem("option").set('timestep', str(self.time_step))
         return self._xml_root
 
-
-    def init_xml_root(self):
-        self._xml_root = ET.Element('mujoco')
-        if self.disable_gravity:
-            ET.SubElement(self.get_elem("option"), 'flag', gravity="disable")
-        if self.time_step:
-            self.get_elem("option").set('timestep', str(self.time_step))
+    def destroy(self):
+        self._xml_root = None
 
     def get_elem(self, elem_name) -> ET.Element:
         elems = self.xml_root.findall(elem_name)
@@ -75,8 +74,8 @@ class MJCFGeneratorBase(ABC):
         geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
 
     def build(self):
-        self.init_xml_root()
         self.load()
+        self.destroy()
         self.generate()
         self.add_scene()
 

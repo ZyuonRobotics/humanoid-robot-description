@@ -24,11 +24,15 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
         self._merge_generators_xml()
         # After merging, update mesh file paths and meshdir
         self._unify_mesh_paths_and_meshdir()
+    
+    def destroy(self):
+        for generator in self.generators.values():
+            generator.destroy()
+        super().destroy()
 
     def _prepare_generators(self, prefix=None):
         # Initialize and generate XML for all sub-generators
         for name, generator in self.generators.items():
-            generator.init_xml_root()
             generator.generate(prefix=f"{prefix}_{name}" if prefix is not None else name)
 
     def _merge_generators_xml(self):

@@ -22,7 +22,6 @@ class MockGenerator(MJCFGeneratorBase):
 
     def generate(self, prefix=None):
         self.generated = True
-        self.init_xml_root()
         # Add asset/mesh and compiler/meshdir for testing
         asset = self.get_elem("asset")
         ET.SubElement(asset, "mesh", name=self._mesh_name, file=self._mesh_file)
@@ -44,7 +43,6 @@ def test_composite_generate_and_merge():
     g1 = MockGenerator("a", meshdir="/tmp/meshA")
     g2 = MockGenerator("b", meshdir="/tmp/meshB")
     composite = MJCFGeneratorComposite({"g1": g1, "g2": g2})
-    composite.init_xml_root()
     composite.generate()
 
     asset = composite.get_elem("asset")
@@ -60,7 +58,6 @@ def test_get_mesh_path():
     g1 = MockGenerator("a", meshdir="/tmp/meshA")
     g2 = MockGenerator("b", meshdir="/tmp/meshB")
     composite = MJCFGeneratorComposite([g1, g2])
-    composite.init_xml_root()
 
     composite._prepare_generators()
     path1 = composite.get_mesh_path(g1._mesh_name)
@@ -68,8 +65,28 @@ def test_get_mesh_path():
     assert path1 == Path("/tmp/meshA/a.stl")
     assert path2 == Path("/tmp/meshB/b.stl") 
 
+    composite.destroy()
     composite.generate() # get_mesh_path should not be called after generate
     path1 = composite.get_mesh_path(g1._mesh_name) # wrong path
     path2 = composite.get_mesh_path(g2._mesh_name) # wrong path
     assert path1 == Path("/tmp/meshA/meshA/a.stl")
     assert path2 == Path("/tmp/meshB/meshB/b.stl") 
+
+def test_composite_destroy():
+    g1 = MockGenerator("a")
+    g2 = MockGenerator("b")
+    composite = MJCFGeneratorComposite([g1, g2])
+    # Trigger xml_root creation
+    _ = composite.xml_root
+    _ = g1.xml_root
+    _ = g2.xml_root
+    # Ensure xml_root is not None before destroy
+    assert composite._xml_root is not None
+    assert g1._xml_root is not None
+    assert g2._xml_root is not None
+    # Call destroy
+    composite.destroy()
+    # After destroy, all _xml_root should be None
+    assert composite._xml_root is None
+    assert g1._xml_root is None
+    assert g2._xml_root is None 
