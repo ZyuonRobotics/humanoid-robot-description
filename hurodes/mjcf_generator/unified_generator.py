@@ -140,6 +140,9 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
     def add_mesh(self, prefix=None):
         asset_elem = self.get_elem("asset")
         for mesh, file_type in self.mesh_file_type.items():
+            # check mesh file exists
+            mesh_file = Path(self.ehdf_path, "meshes", f"{mesh}.{file_type}")
+            assert mesh_file.exists(), f"Mesh file {mesh_file} does not exist"
             mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": get_prefix_name(prefix, mesh), "file": f"{mesh}.{file_type}"})
 
     def add_actuator(self, prefix=None):
