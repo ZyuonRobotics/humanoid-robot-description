@@ -160,8 +160,9 @@ def optimize_meshes_faces(urdf_path, meshes_path, max_faces=8000):
 @click.option("--max_faces", type=int, default=8000, help="Max faces to keep in the mesh optimization.")
 @click.option("--meshes_path", type=str, default=None, help="Path to the meshes directory. If not provided, defaults to the parent directory of the URDF file.")
 @click.option("--default_actuator", type=bool, default=True)
+@click.option("--save_fixed_urdf", type=bool, default=True)
 @click.option("--base_link_name", type=str, default="base_link", help="Name of the base link.")
-def main(urdf_path, max_faces, meshes_path, default_actuator, base_link_name):
+def main(urdf_path, max_faces, meshes_path, default_actuator, save_fixed_urdf, base_link_name):
     """
     Convert a URDF file to MJCF format and save it in the specified directory.
     """
@@ -200,6 +201,10 @@ def main(urdf_path, max_faces, meshes_path, default_actuator, base_link_name):
     optimize_meshes_faces(urdf_path, meshes_path, max_faces)
 
     urdf_string = ET.tostring(urdf_root, encoding='utf-8', xml_declaration=True).decode('utf-8')
+    if save_fixed_urdf:
+        fixed_urdf_path = Path(urdf_path).parent / f"{Path(urdf_path).stem}_fixed.urdf"
+        fixed_urdf_path.write_text(urdf_string, encoding='utf-8')
+
     mjspec = mujoco.MjSpec.from_string(urdf_string) # type: ignore
     mjspec.compile()
     mjcf_string = mjspec.to_xml()

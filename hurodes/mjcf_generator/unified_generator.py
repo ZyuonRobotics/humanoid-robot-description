@@ -100,23 +100,25 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
             joint_elem.set(key, dict2str(joint_data, key))
 
         # mesh element
-        mesh_data_list = find_by_body_id(self.data_dict["mesh"], body_idx)
-        for mesh_data in mesh_data_list:
-            mesh_elem = ET.SubElement(body_elem, 'geom')
-            mesh_elem.set("mesh", get_prefix_name(prefix, mesh_data["mesh"]))
-            self.all_collision_names.append(mesh_data["mesh"])
-            for key in ["type", "contype", "conaffinity", "pos", "quat", "rgba"]:
-                mesh_elem.set(key, dict2str(mesh_data, key))
+        if "mesh" in self.data_dict:
+            mesh_data_list = find_by_body_id(self.data_dict["mesh"], body_idx)
+            for mesh_data in mesh_data_list:
+                mesh_elem = ET.SubElement(body_elem, 'geom')
+                mesh_elem.set("mesh", get_prefix_name(prefix, mesh_data["mesh"]))
+                self.all_collision_names.append(mesh_data["mesh"])
+                for key in ["type", "contype", "conaffinity", "pos", "quat", "rgba"]:
+                    mesh_elem.set(key, dict2str(mesh_data, key))
 
         # collision element
-        collision_data_list = find_by_body_id(self.data_dict["collision"], body_idx)
-        for idx, collision_data in enumerate(collision_data_list):
-            collision_name = f"{dict2str(body_data, 'name')}_{idx}_{collision_data['type']}"
-            collision_elem = ET.SubElement(body_elem, 'geom')
-            self.all_collision_names.append(collision_name)
-            collision_elem.set("rgba", "0 0.7 0.3 0.1")
-            for key in ["type", "pos", "quat", "size", "contype", "conaffinity", "friction"]:
-                collision_elem.set(key, dict2str(collision_data, key))
+        if "collision" in self.data_dict:
+            collision_data_list = find_by_body_id(self.data_dict["collision"], body_idx)
+            for idx, collision_data in enumerate(collision_data_list):
+                collision_name = f"{dict2str(body_data, 'name')}_{idx}_{collision_data['type']}"
+                collision_elem = ET.SubElement(body_elem, 'geom')
+                self.all_collision_names.append(collision_name)
+                collision_elem.set("rgba", "0 0.7 0.3 0.1")
+                for key in ["type", "pos", "quat", "size", "contype", "conaffinity", "friction"]:
+                    collision_elem.set(key, dict2str(collision_data, key))
 
         return body_elem
 
@@ -166,8 +168,8 @@ if __name__ == '__main__':
     import mujoco
     import mujoco.viewer
 
-    generator = UnifiedMJCFGenerator(Path(ROBOTS_PATH, "kuavo_s45"))
-    xml_string = generator.export(Path(ROBOTS_PATH, "kuavo_s45", "robot.xml"))
+    generator = UnifiedMJCFGenerator(Path(ROBOTS_PATH, "zhaplin"))
+    xml_string = generator.export(Path(ROBOTS_PATH, "zhaplin", "robot.xml"))
 
     m = mujoco.MjModel.from_xml_string(xml_string) # type: ignore
     d = mujoco.MjData(m) # type: ignore
