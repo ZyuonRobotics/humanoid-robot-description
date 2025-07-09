@@ -127,7 +127,7 @@ class UnifiedMJCFParser:
             self.mesh_file_type[mesh.name] = mesh_type
 
         for body in spec.bodies:
-            idx = body.id
+            idx = self.body_name2idx[body.name]
             for geom in body.geoms:
                 if geom.type == mujoco.mjtGeom.mjGEOM_MESH: # type: ignore
                     mesh_dict = {"type": "mesh", "mesh": geom.meshname, "bodyid": idx}
