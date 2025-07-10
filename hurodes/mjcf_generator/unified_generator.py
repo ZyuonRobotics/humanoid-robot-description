@@ -11,24 +11,7 @@ import numpy as np
 import pandas as pd
 
 from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
-from hurodes.contants import RobotFormatType
-
-
-def dict2str(data, name):
-    """
-    Convert a dictionary to a string.
-    If the dictionary has only one key starting with name, return the value of the key.
-    If the dictionary has multiple keys starting with name, return a space-separated string of the values.
-    """
-    keys_in_dict = [key for key in data.keys() if key.startswith(name)]
-    assert len(keys_in_dict) > 0, f"No key starts with {name} in data: {data}"
-    if len(keys_in_dict) == 1:
-        assert keys_in_dict[0] == name, f"keys_in_dict: {keys_in_dict}"
-        return str(data[name])
-    else:
-        for i in range(len(keys_in_dict)):
-            assert f"{name}{i}" in keys_in_dict, f"{name}{i} not in keys_in_dict: {keys_in_dict}"
-        return " ".join([str(data[f"{name}{i}"]) for i in range(len(keys_in_dict))])
+from hurodes.utils.typing import dict2str
 
 def find_by_body_id(all_data, body_id):
     """
@@ -46,8 +29,6 @@ def get_prefix_name(prefix, name):
     return f"{prefix}_{name}" if prefix else name
 
 class UnifiedMJCFGenerator(MJCFGeneratorBase):
-    format_type = RobotFormatType.UNKNOWN
-
     def __init__(
             self,
             hrdf_path,
@@ -66,7 +47,6 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
     def load(self):
         with open(Path(self.hrdf_path, "meta.json"), "r") as f:
             meta_info = json.load(f)
-        assert RobotFormatType(meta_info["format_type"]) == self.format_type, f"Format type mismatch"
         self.body_parent_id = meta_info["body_parent_id"]
         self.mesh_file_type = meta_info["mesh_file_type"]
         self.ground_dict = meta_info["ground"]

@@ -1,19 +1,5 @@
 from colorama import Fore, Style
 
-def is_int(s):
-    try:
-        int(s)
-        return True
-    except ValueError:
-        return False
-
-def is_float(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
-
 def get_elem_tree_str(elem, indent=0, elem_tag="body", colorful=False):
     res = ""
 
