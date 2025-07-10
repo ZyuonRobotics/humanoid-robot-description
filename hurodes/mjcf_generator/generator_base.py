@@ -3,7 +3,7 @@ from typing import List, Dict, Union
 import xml.etree.ElementTree as ET
 
 from hurodes.mjcf_generator.constants import *
-from hurodes.utils import get_elem_tree_str
+from hurodes.utils.printing import get_elem_tree_str
 
 class MJCFGeneratorBase(ABC):
     def __init__(

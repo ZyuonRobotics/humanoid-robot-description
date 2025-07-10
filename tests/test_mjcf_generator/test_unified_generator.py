@@ -1,22 +1,5 @@
-import os
-import xml.etree.ElementTree as ET
-import numpy as np
-import pandas as pd
-from pathlib import Path
 from hurodes.mjcf_generator.unified_generator import UnifiedMJCFGenerator, dict2str, find_by_body_id
-from hurodes.contants import RobotFormatType
 from hurodes import ROBOTS_PATH
-
-
-def test_dict2str():
-    data = {
-        "a0": 1, "a1": 2, "a2": 3,
-        "b": 1.1,
-        "c0": 1.1, "c1": 1.2, "c2": 1.3
-    }
-    assert dict2str(data, "a") == "1 2 3"
-    assert dict2str(data, "b") == "1.1"
-    assert dict2str(data, "c") == "1.1 1.2 1.3"
 
 def test_find_by_body_id():
     all_data = [

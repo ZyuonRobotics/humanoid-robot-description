@@ -1,0 +1,26 @@
+import os
+import click
+
+from hurodes.format_parser import UnifiedMJCFParser, UnifiedURDFParser
+from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
+
+@click.command()
+@click.option("--input_path", prompt='Input path', type=str, help="Path to the input MJCF/URDF file.")
+@click.option("--robot_name", prompt='Robot name', type=str, help="Name of the robot.")
+@click.option("--format_type", prompt='Format type', type=str, help="Format type of the input file.", default="mjcf")
+def main(input_path, robot_name, format_type):
+    if format_type == "mjcf":
+        parser = UnifiedMJCFParser(input_path)
+    elif format_type == "urdf":
+        parser = UnifiedURDFParser(input_path)
+    else:
+        raise ValueError(f"Invalid format type: {format_type}")
+
+    save_path = os.path.join(ROBOTS_PATH, robot_name)
+
+    parser.print_body_tree()
+    parser.parse()
+    parser.save(save_path)
+
+if __name__ == "__main__":
+    main()

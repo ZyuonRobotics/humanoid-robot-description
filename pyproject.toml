@@ -10,12 +10,12 @@ dependencies = [
     "pandas>=2.0",
     "colorama>=0.4.6",
     "click>=8.0",
-    "mujoco>=2.3.3",
+    "mujoco>=3.3.0",
     "tqdm>=4.67.1",
     "trimesh>=4.6.10",
     "fast-simplification>=0.1.11",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "ZyuonRobotics" }
 ]

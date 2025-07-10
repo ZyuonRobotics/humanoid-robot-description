@@ -11,24 +11,7 @@ import numpy as np
 import pandas as pd
 
 from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
-from hurodes.contants import RobotFormatType
-
-
-def dict2str(data, name):
-    """
-    Convert a dictionary to a string.
-    If the dictionary has only one key starting with name, return the value of the key.
-    If the dictionary has multiple keys starting with name, return a space-separated string of the values.
-    """
-    keys_in_dict = [key for key in data.keys() if key.startswith(name)]
-    assert len(keys_in_dict) > 0, f"No key starts with {name} in data: {data}"
-    if len(keys_in_dict) == 1:
-        assert keys_in_dict[0] == name, f"keys_in_dict: {keys_in_dict}"
-        return str(data[name])
-    else:
-        for i in range(len(keys_in_dict)):
-            assert f"{name}{i}" in keys_in_dict, f"{name}{i} not in keys_in_dict: {keys_in_dict}"
-        return " ".join([str(data[f"{name}{i}"]) for i in range(len(keys_in_dict))])
+from hurodes.utils.typing import dict2str
 
 def find_by_body_id(all_data, body_id):
     """
@@ -46,8 +29,6 @@ def get_prefix_name(prefix, name):
     return f"{prefix}_{name}" if prefix else name
 
 class UnifiedMJCFGenerator(MJCFGeneratorBase):
-    format_type = RobotFormatType.UNKNOWN
-
     def __init__(
             self,
             hrdf_path,
@@ -66,7 +47,6 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
     def load(self):
         with open(Path(self.hrdf_path, "meta.json"), "r") as f:
             meta_info = json.load(f)
-        assert RobotFormatType(meta_info["format_type"]) == self.format_type, f"Format type mismatch"
         self.body_parent_id = meta_info["body_parent_id"]
         self.mesh_file_type = meta_info["mesh_file_type"]
         self.ground_dict = meta_info["ground"]
@@ -100,23 +80,25 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
             joint_elem.set(key, dict2str(joint_data, key))
 
         # mesh element
-        mesh_data_list = find_by_body_id(self.data_dict["mesh"], body_idx)
-        for mesh_data in mesh_data_list:
-            mesh_elem = ET.SubElement(body_elem, 'geom')
-            mesh_elem.set("mesh", get_prefix_name(prefix, mesh_data["mesh"]))
-            self.all_collision_names.append(mesh_data["mesh"])
-            for key in ["type", "contype", "conaffinity", "pos", "quat", "rgba"]:
-                mesh_elem.set(key, dict2str(mesh_data, key))
+        if "mesh" in self.data_dict:
+            mesh_data_list = find_by_body_id(self.data_dict["mesh"], body_idx)
+            for mesh_data in mesh_data_list:
+                mesh_elem = ET.SubElement(body_elem, 'geom')
+                mesh_elem.set("mesh", get_prefix_name(prefix, mesh_data["mesh"]))
+                self.all_collision_names.append(mesh_data["mesh"])
+                for key in ["type", "contype", "conaffinity", "pos", "quat", "rgba"]:
+                    mesh_elem.set(key, dict2str(mesh_data, key))
 
         # collision element
-        collision_data_list = find_by_body_id(self.data_dict["collision"], body_idx)
-        for idx, collision_data in enumerate(collision_data_list):
-            collision_name = f"{dict2str(body_data, 'name')}_{idx}_{collision_data['type']}"
-            collision_elem = ET.SubElement(body_elem, 'geom')
-            self.all_collision_names.append(collision_name)
-            collision_elem.set("rgba", "0 0.7 0.3 0.1")
-            for key in ["type", "pos", "quat", "size", "contype", "conaffinity", "friction"]:
-                collision_elem.set(key, dict2str(collision_data, key))
+        if "collision" in self.data_dict:
+            collision_data_list = find_by_body_id(self.data_dict["collision"], body_idx)
+            for idx, collision_data in enumerate(collision_data_list):
+                collision_name = f"{dict2str(body_data, 'name')}_{idx}_{collision_data['type']}"
+                collision_elem = ET.SubElement(body_elem, 'geom')
+                self.all_collision_names.append(collision_name)
+                collision_elem.set("rgba", "0 0.7 0.3 0.1")
+                for key in ["type", "pos", "quat", "size", "contype", "conaffinity", "friction"]:
+                    collision_elem.set(key, dict2str(collision_data, key))
 
         return body_elem
 
@@ -166,8 +148,8 @@ if __name__ == '__main__':
     import mujoco
     import mujoco.viewer
 
-    generator = UnifiedMJCFGenerator(Path(ROBOTS_PATH, "kuavo_s45"))
-    xml_string = generator.export(Path(ROBOTS_PATH, "kuavo_s45", "robot.xml"))
+    generator = UnifiedMJCFGenerator(Path(ROBOTS_PATH, "zhaplin"))
+    xml_string = generator.export(Path(ROBOTS_PATH, "zhaplin", "robot.xml"))
 
     m = mujoco.MjModel.from_xml_string(xml_string) # type: ignore
     d = mujoco.MjData(m) # type: ignore
