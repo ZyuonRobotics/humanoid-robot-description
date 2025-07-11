@@ -23,7 +23,7 @@ class BaseParser(ABC):
     def mujoco_spec(self):
         raise NotImplementedError("Subclasses must implement this method")
 
-    def parse(self):
+    def parse(self, base_link_name="base_link"):
         self.model_dict, self.ground_dict, self.body_parent_id = parse_mujoco_spec(self.mujoco_spec)
         self.mesh_path, self.mesh_file_type = get_mesh_dict(self.mujoco_spec, self.file_path)
 

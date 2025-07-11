@@ -39,6 +39,14 @@ class UnifiedURDFParser(BaseParser):
                 floating_joint_exists = True
                 break
         if not floating_joint_exists:
+            # check "base_link_name" is in the urdf
+            base_link_exists = False
+            for link in self.root.findall("link"):
+                if link.attrib['name'] == base_link_name:
+                    base_link_exists = True
+                    break
+            assert base_link_exists, f"{base_link_name} not found in the urdf"
+
             dummy_link = ET.Element('link', {'name': 'dummy_link'})
 
             dummy_joint = ET.Element('joint', {'name': 'dummy_to_base_link', 'type': 'floating'})
