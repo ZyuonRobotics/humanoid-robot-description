@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Union
 import xml.etree.ElementTree as ET
 
 from hurodes.mjcf_generator.constants import *

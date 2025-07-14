@@ -141,19 +141,3 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.add_all_body(prefix=prefix)
         if "actuator" in self.data_dict:
             self.add_actuator(prefix=prefix)
-
-
-if __name__ == '__main__':
-    from hurodes import ROBOTS_PATH
-    import mujoco
-    import mujoco.viewer
-
-    generator = UnifiedMJCFGenerator(Path(ROBOTS_PATH, "zhaplin"))
-    xml_string = generator.export(Path(ROBOTS_PATH, "zhaplin", "robot.xml"))
-
-    m = mujoco.MjModel.from_xml_string(xml_string) # type: ignore
-    d = mujoco.MjData(m) # type: ignore
-    with mujoco.viewer.launch_passive(m, d) as viewer:
-        while viewer.is_running():
-            mujoco.mj_step(m, d) # type: ignore
-            viewer.sync()

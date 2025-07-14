@@ -1,11 +1,6 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from collections import defaultdict
-from pathlib import Path
-from abc import ABC, abstractmethod
 
-import pandas as pd
-import numpy as np
 import mujoco
 
 from hurodes.format_parser.base_parser import BaseParser
