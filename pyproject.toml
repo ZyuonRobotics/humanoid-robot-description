@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hurodes"
-version = "1.0.0"
+version = "0.0.1"
 readme = "README.md"
 dependencies = [
     "pandas>=2.0",
@@ -21,7 +21,6 @@ authors = [
 ]
 maintainers = [
     { name = "Honglong Tian" },
-    { name = "Chun Li" }
 ]
 
 [project.optional-dependencies]
