@@ -34,17 +34,17 @@ pip install -e .[dev]
 
 ## 快速开始
 
-以下示例演示了 MJCF 与 URDF 之间的互转流程：
+以下示例演示了主要脚本的模型转换与可视化用法：
 
 ```bash
-# URDF → MJCF, mjcf will saved in your urdf_path
-python scripts/urdf2mjcf.py --urdf_path path/to/robot.urdf
+# 解析 URDF 或 MJCF 为 HRDF（通过 format_type 选择 'urdf' 或 'mjcf'）
+python scripts/parse.py --input_path path/to/robot.urdf --robot_name your_robot_name --format_type urdf
 
-# MJCF → HRDF
-python scripts/mjcf2hrdf.py --mjcf_path path/to/robot.xml --robot_name your_robot_name
+# 从 HRDF 生成 MJCF 并可视化
+python scripts/generate.py --robot_name your_robot_name
 
-# HRDF → MJCF, mjcf will saved in ~/.hurodes/robot/your_robot_name
-python scripts/hrdf2mjcf.py --robot_name your_robot_name
+# 合成多个机器人（HRDF）为一个 MJCF 并可视化
+python scripts/generate_composite.py --robot_names robot1,robot2
 ```
 
 ---

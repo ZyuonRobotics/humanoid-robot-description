@@ -34,17 +34,17 @@ pip install -e .[dev]
 
 ## Quick Start
 
-The following examples demonstrate the conversion process between MJCF and URDF:
+The following examples demonstrate the main script usage for model conversion and visualization:
 
 ```bash
-# URDF → MJCF, mjcf will be saved in your urdf_path
-python scripts/urdf2mjcf.py --urdf_path path/to/robot.urdf
+# Parse URDF or MJCF to HRDF (choose format_type: 'urdf' or 'mjcf')
+python scripts/parse.py --input_path path/to/robot.urdf --robot_name your_robot_name --format_type urdf
 
-# MJCF → HRDF
-python scripts/mjcf2hrdf.py --mjcf_path path/to/robot.xml --robot_name your_robot_name
+# Generate MJCF from HRDF and visualize
+python scripts/generate.py --robot_name your_robot_name
 
-# HRDF → MJCF, mjcf will be saved in ~/.hurodes/robot/your_robot_name
-python scripts/hrdf2mjcf.py --robot_name your_robot_name
+# Compose multiple robots (from HRDF) into a single MJCF and visualize
+python scripts/generate_composite.py --robot_names robot1,robot2
 ```
 
 ---
