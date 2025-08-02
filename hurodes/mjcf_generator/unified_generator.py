@@ -118,6 +118,11 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
             "autolimits": "true",
             "meshdir": str(Path(self.hrdf_path, "meshes"))
         }
+    
+    def add_default(self):
+        default_elem = self.get_elem("default")
+        ET.SubElement(default_elem, "joint", attrib={"limited": "true"})
+        ET.SubElement(default_elem, "motor", attrib={"ctrllimited": "true"})
 
     def add_mesh(self, prefix=None):
         asset_elem = self.get_elem("asset")
@@ -129,14 +134,26 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
     def add_actuator(self, prefix=None):
         actuator_elem = ET.SubElement(self.xml_root, 'actuator')
+        
+        # Create a mapping from joint name to actuator data for quick lookup
+        actuator_map = {}
         for actuator_data in self.data_dict["actuator"]:
-            motor_elem = ET.SubElement(actuator_elem, 'motor')
-            motor_elem.set("name", get_prefix_name(prefix, dict2str(actuator_data, "name")))
-            motor_elem.set("joint", get_prefix_name(prefix, dict2str(actuator_data, "joint")))
-            motor_elem.set("ctrlrange", dict2str(actuator_data, "ctrlrange"))
+            joint_name = dict2str(actuator_data, "joint")
+            actuator_map[joint_name] = actuator_data
+        
+        # Iterate through joints in their order and add actuators accordingly
+        for joint_data in self.data_dict["joint"]:
+            joint_name = dict2str(joint_data, "name")
+            if joint_name in actuator_map:
+                actuator_data = actuator_map[joint_name]
+                motor_elem = ET.SubElement(actuator_elem, 'motor')
+                motor_elem.set("name", get_prefix_name(prefix, dict2str(actuator_data, "name")))
+                motor_elem.set("joint", get_prefix_name(prefix, joint_name))
+                motor_elem.set("ctrlrange", dict2str(actuator_data, "ctrlrange"))
 
     def generate(self, prefix=None):
         self.add_compiler()
+        self.add_default()
         self.add_mesh(prefix=prefix)
         self.add_all_body(prefix=prefix)
         if "actuator" in self.data_dict:

@@ -10,6 +10,9 @@ from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
 @click.option("--base_link_name", prompt='Base link name', type=str, help="Name of the base link.", default="base_link")
 @click.option("--format_type", prompt='Format type', type=str, help="Format type of the input file.", default="urdf")
 def main(input_path, robot_name, format_type, base_link_name):
+    # remove quotes from input_path
+    input_path = input_path.strip("'")
+    
     if format_type == "mjcf":
         parser = UnifiedMJCFParser(input_path)
     elif format_type == "urdf":

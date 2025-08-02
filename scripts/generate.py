@@ -15,6 +15,11 @@ def main(robot_name):
     generator = UnifiedMJCFGenerator(hrdf_path)
     xml_string = generator.export(os.path.join(hrdf_path, "robot.xml"))
 
+    xml_string = xml_string.replace(
+        'meshdir="meshes"', 
+        f'meshdir="{os.path.join(ROBOTS_PATH, robot_name, "meshes")}"'
+    )
+
     m = mujoco.MjModel.from_xml_string(xml_string) # type: ignore
     d = mujoco.MjData(m) # type: ignore
     with mujoco.viewer.launch_passive(m, d) as viewer:
