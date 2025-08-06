@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hurodes"
-version = "0.0.1"
+version = "0.0.2"
 readme = "README.md"
 dependencies = [
     "pandas>=2.0",
@@ -41,5 +41,7 @@ Homepage = "https://github.com/ZyuonRobotics/humanoid-robot-description"
 
 [project.optional-dependencies]
 dev = [
-    "pytest"
+    "pytest",
+    "build", 
+    "twine"
 ]
