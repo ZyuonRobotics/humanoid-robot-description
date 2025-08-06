@@ -8,7 +8,7 @@ from hurodes.mjcf_generator.unified_generator import UnifiedMJCFGenerator
 from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
 
 @click.command()
-@click.option("--robot_name", prompt='Robot name', type=str, help="Name of the robot.")
+@click.option("--robot-name", prompt='Robot name', type=str, help="Robot name")
 def main(robot_name):
     hrdf_path = os.path.join(ROBOTS_PATH, robot_name)
 

@@ -10,10 +10,10 @@ from hurodes import ROBOTS_PATH
 
 @click.command()
 @click.option(
-    "--robot_names",
+    "--robot-names",
     prompt="Robot names (comma-separated)",
     type=str,
-    help="Comma-separated list of robot names to compose."
+    help="Robot names (comma-separated)"
 )
 def main(robot_names):
     robot_names_list = [name.strip() for name in robot_names.split(",") if name.strip()]
