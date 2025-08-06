@@ -6,26 +6,64 @@ import mujoco
 from hurodes.format_parser.base_parser import BaseParser
 
 class UnifiedURDFParser(BaseParser):
-    def __init__(self, mjcf_path):
+    def __init__(self, mjcf_path, mesh_dir_path=None):
         super().__init__(mjcf_path)
+        self.mesh_dir_path = mesh_dir_path
+
         self.tree = ET.parse(self.file_path)
         self.root = self.tree.getroot()
+
+    def is_mesh_dir(self, dir_path):
+        if not Path(dir_path).exists():
+            return False
+        if not Path(dir_path).is_dir():
+            return False
+        for file in Path(dir_path).iterdir():
+            if file.is_file() and file.suffix.lower() in [".obj", ".stl"]:
+                return True
+        return False
+        
 
     def fix_urdf(self, base_link_name="base_link"):
         # Ensure the root element is a robot tag
         if self.root.tag != 'robot':
             raise ValueError("Root element is not 'robot'")
+
+        # meshdir
+        if self.mesh_dir_path is not None:
+            if self.is_mesh_dir(self.mesh_dir_path):
+                mesh_dir = Path(self.mesh_dir_path)
+            else:
+                raise ValueError(f"Mesh directory {self.mesh_dir_path} is not a valid mesh directory")
+        elif self.is_mesh_dir(Path(self.file_path).parent / "meshes"):
+            mesh_dir = Path(self.file_path).parent / "meshes"
+        elif self.is_mesh_dir(Path(self.file_path).parent.parent / "meshes"):
+            mesh_dir = Path(self.file_path).parent.parent / "meshes"
+        else:
+            mesh_dir = None
         
         # Create mujoco tag
-        if self.root.find("mujoco") is None:
+        mujoco_elem = self.root.find("mujoco")
+        if mujoco_elem is None:
             mujoco_elem = ET.Element('mujoco')
-            ET.SubElement(
-                mujoco_elem, 
-                'compiler', {'meshdir': str(Path(self.file_path).parent.parent / "meshes"), 
-                'balanceinertia': 'true', 
-                'discardvisual': 'false'}
-            )
+            
+            assert mesh_dir is not None, "Mesh directory not found"
+            ET.SubElement(mujoco_elem, 'compiler', {'meshdir': str(mesh_dir)})
             self.root.insert(0, mujoco_elem)
+        else:
+            compiler_elem = mujoco_elem.find("compiler")
+            if compiler_elem is None:
+                assert mesh_dir is not None, "Mesh directory not found"
+                ET.SubElement(mujoco_elem, 'compiler', {'meshdir': str(mesh_dir)})
+            else:
+                original_mesh_dir = compiler_elem.attrib['meshdir']
+                if self.is_mesh_dir(original_mesh_dir):
+                    mesh_dir = Path(original_mesh_dir)
+                elif self.is_mesh_dir(Path(self.file_path).parent / original_mesh_dir):
+                    mesh_dir = Path(self.file_path).parent / original_mesh_dir
+                else:
+                    assert mesh_dir is not None, "Mesh directory not found"
+                compiler_elem.attrib['meshdir'] = str(mesh_dir)
         
         # check if floating joint exists
         floating_joint_exists = False
