@@ -80,11 +80,11 @@ class UnifiedURDFParser(BaseParser):
                     break
             assert base_link_exists, f"{base_link_name} not found in the urdf"
 
-            dummy_link = ET.Element('link', {'name': 'dummy_link'})
+            dummy_link = ET.Element('link', {'name': 'dummy-link'})
 
-            dummy_joint = ET.Element('joint', {'name': 'dummy_to_base_link', 'type': 'floating'})
+            dummy_joint = ET.Element('joint', {'name': 'dummy-joint', 'type': 'floating'})
             ET.SubElement(dummy_joint, 'origin', {'xyz': '0 0 0', 'rpy': '0 0 0'})
-            ET.SubElement(dummy_joint, 'parent', {'link': 'dummy_link'})
+            ET.SubElement(dummy_joint, 'parent', {'link': 'dummy-link'})
             ET.SubElement(dummy_joint, 'child', {'link': base_link_name})
 
             self.root.insert(0, dummy_link)
