@@ -1,23 +1,37 @@
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 
+from hurodes.generator_base import GeneratorBase
 from hurodes.mjcf_generator.constants import *
 from hurodes.utils.printing import get_elem_tree_str
 
-class MJCFGeneratorBase(ABC):
+class MJCFGeneratorBase(GeneratorBase):
+    """
+    Base class for MJCF (MuJoCo XML Format) generators.
+    
+    This class extends GeneratorBase with MJCF-specific functionality
+    including gravity settings, timestep configuration, and scene setup.
+    """
+    
     def __init__(
             self,
             disable_gravity=False,
             timestep=0.001
     ):
+        """
+        Initialize MJCF generator.
+        
+        Args:
+            disable_gravity: Whether to disable gravity in the simulation
+            timestep: Simulation timestep in seconds
+        """
+        super().__init__()
         self.disable_gravity = disable_gravity
         self.time_step = timestep
 
-        self._xml_root: ET.Element | None = None
-        self.ground_dict: dict | None = None
-
     @property
     def xml_root(self) -> ET.Element:
+        """Get or create the MJCF root element with MJCF-specific configuration."""
         if self._xml_root is None:
             self._xml_root = ET.Element('mujoco')
             if self.disable_gravity:
@@ -26,33 +40,13 @@ class MJCFGeneratorBase(ABC):
                 self.get_elem("option").set('timestep', str(self.time_step))
         return self._xml_root
 
-    def destroy(self):
-        self._xml_root = None
-
-    def get_elem(self, elem_name) -> ET.Element:
-        elems = self.xml_root.findall(elem_name)
-        assert len(elems) <= 1, f"Multiple {elem_name} elements found"
-        if len(elems) == 1:
-            return elems[0]
-        else:
-            return ET.SubElement(self.xml_root, elem_name)
-
     @property
     def mjcf_str(self) -> str:
-        tree = ET.ElementTree(self.xml_root)
-        ET.indent(tree, space="  ", level=0)
-        res = ET.tostring(self.xml_root, encoding='unicode', method='xml')
-        return res
-
-    @abstractmethod
-    def load(self):
-        raise NotImplementedError("load method is not implemented")
-
-    @abstractmethod
-    def generate(self, prefix=None):
-        raise NotImplementedError("generate method is not implemented")
+        """Get the MJCF as a formatted XML string."""
+        return self.format_str
 
     def add_scene(self):
+        """Add visual scene elements including lighting, textures, and ground plane."""
         # visual
         visual_elem = self.get_elem("visual")
         headlight_elem = ET.SubElement(visual_elem, 'headlight',
@@ -73,26 +67,20 @@ class MJCFGeneratorBase(ABC):
         geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
 
     def build(self):
-        self.load()
-        self.destroy()
-        self.generate()
-        self.add_scene()
-
-    def export(self, file_path=None):
-        self.build()
-        if file_path is not None:
-            with open(file_path, "w") as f:
-                f.write(self.mjcf_str)
-        return self.mjcf_str
+        """Build the complete MJCF including scene elements."""
+        super().build()  # Call parent build method
+        self.add_scene()    # Add MJCF-specific scene elements
 
     @property
     def all_body_names(self):
+        """Get all body names in the MJCF."""
         body_list = [elem.get("name") for elem in self.xml_root.findall(".//body")]
         assert None not in body_list, "None body name found"
         return body_list
 
     @property
     def body_tree_str(self):
+        """Get a string representation of the body tree structure."""
         worldbody_elem = self.get_elem("worldbody")
         body_elems = worldbody_elem.findall("body")
         assert len(body_elems) == 1, "Multiple body elements found"
