@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Union, Type
 
 from hurodes.hrdf.base.attribute import Position, Quaternion, Name, Id, SingleFloat, Attribute
-from hurodes.hrdf.base.info import InfoList
+from hurodes.hrdf.base.info import Infos
 
 @dataclass
 class Inertia(Attribute):
@@ -39,13 +39,8 @@ ATTR_CLASSES = [
     Id,
 ]
 
-class Body(InfoList):
+class BodyInfos(Infos):
     def __init__(self):
         attrs = [attr_class() for attr_class in ATTR_CLASSES]
 
         super().__init__(attrs)
-
-            
-if __name__ == "__main__":
-    body = Body()
-    print(body.infos)

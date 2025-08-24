@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from hurodes.hrdf.base.attribute import Position, Axis, Name, Range, SingleFloat, BodyName
-from hurodes.hrdf.base.info import InfoList
+from hurodes.hrdf.base.info import Infos
 
 @dataclass
 class Armature(SingleFloat):
@@ -37,7 +37,7 @@ ATTR_CLASSES = [
     Range,
 ]
 
-class Joint(InfoList):
+class JointInfos(Infos):
     def __init__(self):
         attrs = [attr_class() for attr_class in ATTR_CLASSES]
 
@@ -46,7 +46,3 @@ class Joint(InfoList):
     def specific_parse_mujoco(self, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name
         return info_dict
-
-if __name__ == "__main__":
-    joint = Joint()
-    print(joint.infos)

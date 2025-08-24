@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from hurodes.hrdf.base.attribute import Name, SingleFloat
-from hurodes.hrdf.base.info import InfoList
+from hurodes.hrdf.base.info import Infos
 
 @dataclass
 class PeakTorque(SingleFloat):
@@ -37,7 +37,7 @@ ATTR_CLASSES = [
     Name,
 ]
 
-class Actuator(InfoList):
+class ActuatorInfos(Infos):
     def __init__(self):
         attrs = [attr_class() for attr_class in ATTR_CLASSES]
 
@@ -51,7 +51,3 @@ class Actuator(InfoList):
         info_dict["stiffness"] = None
         info_dict["joint_name"] = part_spec.target
         return info_dict
-
-if __name__ == "__main__":
-    actuator = Actuator()
-    print(actuator.infos)

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Union, Type
 
 from hurodes.hrdf.base.attribute import Position, Quaternion, Name, BodyName, Attribute, SingleFloat, SingleInt
-from hurodes.hrdf.base.info import InfoList
+from hurodes.hrdf.base.info import Infos
 
 
 @dataclass
@@ -52,8 +52,8 @@ ATTR_CLASSES = [
     Name,
 ]
 
-class Geom(InfoList):
-    """Geom class following the InfoList pattern"""
+class SimpleGeomInfos(Infos):
+    """Simple Geom class following the InfoList pattern"""
     def __init__(self):
         attrs = [attr_class() for attr_class in ATTR_CLASSES]
         super().__init__(attrs)
@@ -64,10 +64,3 @@ class Geom(InfoList):
         info_dict["dynamic_friction"] = part_model.friction[0]
         info_dict["restitution"] = None
         return info_dict
-
-if __name__ == "__main__":
-    # Test the Geom class
-    Geom = Geom()
-    print("Geom attributes:")
-    for name, info in Geom.infos.items():
-        print(f"  {name}: {info.dtype.__name__} {'(array)' if info.is_array else '(single)'} dim={info.dim}")

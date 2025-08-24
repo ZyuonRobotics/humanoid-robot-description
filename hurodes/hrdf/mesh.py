@@ -1,6 +1,6 @@
 from hurodes.hrdf.base.attribute import Position, Quaternion, Name, BodyName
-from hurodes.hrdf.geom import ConType, ConAffinity, RGBA
-from hurodes.hrdf.base.info import InfoList
+from hurodes.hrdf.simple_geom import ConType, ConAffinity, RGBA
+from hurodes.hrdf.base.info import Infos
 
 # List of all mesh attribute classes
 ATTR_CLASSES = [
@@ -16,7 +16,7 @@ ATTR_CLASSES = [
     Name,
 ]
 
-class Mesh(InfoList):
+class MeshInfos(Infos):
     """Mesh class following the InfoList pattern"""
     def __init__(self):
         attrs = [attr_class() for attr_class in ATTR_CLASSES]
@@ -26,10 +26,3 @@ class Mesh(InfoList):
         info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name
         info_dict["name"] = part_spec.meshname
         return info_dict
-
-if __name__ == "__main__":
-    # Test the mesh class
-    mesh = Mesh()
-    print("Mesh attributes:")
-    for name, info in mesh.infos.items():
-        print(f"  {name}: {info.dtype.__name__} {'(array)' if info.is_array else '(single)'} dim={info.dim}")

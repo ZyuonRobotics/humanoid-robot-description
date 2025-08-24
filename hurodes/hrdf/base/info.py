@@ -79,11 +79,17 @@ class Info:
     
     def to_dict(self) -> Dict[str, Any]:
         if not self.is_array:
-            return {self.name: self.data}
+            if self.data is None:
+                return {self.name: None}
+            else:
+                return {self.name: self.dtype(self.data)}
         else:
-            return {f"{self.name}{i}": self.data[i] for i in range(self.dim)}
+            if self.data is None:
+                return {f"{self.name}{i}": None for i in range(self.dim)}
+            else:
+                return {f"{self.name}{i}": self.dtype(self.data[i]) for i in range(self.dim)}
 
-class InfoList:
+class Infos:
     def __init__(self, attrs: List[Attribute] = None):
         self.attrs = attrs
         self.attr_names = [attr.name for attr in attrs]
@@ -110,34 +116,45 @@ class InfoList:
         Returns:
             Dict[str, Any]: Dictionary containing all attributes in key-value format
         """
-        if self.attrs is None:
+        if self._infos is None:
             return {}
         
         result = {}
-        for attr_instance in self.attrs.values():
-            result.update(attr_instance.to_dict())
+        for name, info in self._infos.items():
+            result.update(info.to_dict())
         
         return result
 
     def parse_dict(self, info_dict: Dict[str, Any]):
         self._infos = {}
         for attr in self.attrs:
+            self._infos[attr.name] = Info(attr)
             if info_dict[attr.name] is not None:
-                self._infos[attr.name] = Info(attr)
                 self._infos[attr.name].data = info_dict[attr.name]
-            else:
-                self._infos[attr.name] = None
 
-    def parse_mujoco(self, part_model, part_spec=None, whole_model=None, whole_spec=None):
+    @classmethod
+    def from_mujoco(cls, part_model, part_spec=None, whole_model=None, whole_spec=None):
+        """
+        This function is used to parse the information from the mujoco model and spec.
+        """
+        infos = cls()
+
         info_dict = {}
-
-        info_dict = self.specific_parse_mujoco(info_dict, part_model, part_spec, whole_model, whole_spec)
+        info_dict = infos.specific_parse_mujoco(info_dict, part_model, part_spec, whole_model, whole_spec)
         
-        for attr in self.attrs:
+        for attr in infos.attrs:
             if attr.name not in info_dict:
                 info_dict[attr.name] = getattr(part_model, attr.mujoco_name)
-        self.parse_dict(info_dict)
-        return self
+        infos.parse_dict(info_dict)
+        return infos
 
     def specific_parse_mujoco(self, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         return info_dict
+
+def save_csv(infos_list: List[Infos], save_path: str):
+    assert len(infos_list) > 0, "infos_list is empty"
+    
+    df_list = [infos.to_flat_dict() for infos in infos_list]
+        
+    df = pd.DataFrame(df_list)
+    df.to_csv(save_path, index=False)
