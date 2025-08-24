@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Union, Type
-from hurodes.hrdf.base.attribute import Position, Quaternion, Axis, Name, Id, Range, SingleFloat, Attribute
+
+from hurodes.hrdf.base.attribute import Position, Quaternion, Name, Id, SingleFloat, Attribute
 from hurodes.hrdf.base.info import InfoList
 
 @dataclass
@@ -17,10 +18,12 @@ class Mass(SingleFloat):
 @dataclass
 class InertiaPosition(Position):
     name: str = "inertia_position"
+    mujoco_name: str = "ipos"
 
 @dataclass
 class InertiaQuaternion(Quaternion):
     name: str = "inertia_quaternion"
+    mujoco_name: str = "iquat"
 
 ATTR_CLASSES = [
     # body attributes
@@ -42,6 +45,7 @@ class Body(InfoList):
 
         super().__init__(attrs)
 
+            
 if __name__ == "__main__":
     body = Body()
     print(body.infos)

@@ -7,7 +7,25 @@ class Attribute:
     dtype: Union[Type, str]
     is_array: bool
     dim: int
+    mujoco_name: str = field(default="")
+    
+    def __post_init__(self):
+        # If mujoco_name is not specified, use name as default
+        if not self.mujoco_name:
+            self.mujoco_name = self.name
 
+
+@dataclass
+class SingleFloat(Attribute):
+    dtype: Union[Type, str] = float
+    is_array: bool = False
+    dim: int = 0
+
+@dataclass
+class SingleInt(Attribute):
+    dtype: Union[Type, str] = int
+    is_array: bool = False
+    dim: int = 0
 @dataclass
 class Position(Attribute):
     name: str = "pos"
@@ -37,7 +55,11 @@ class Name(Attribute):
     dim: int = 0
 
 @dataclass
-class Id(Attribute):
+class BodyName(Name):
+    name: str = "body_name"
+
+@dataclass
+class Id(SingleInt):
     name: str = "id"
     dtype: Union[Type, str] = int
     is_array: bool = False
@@ -57,9 +79,3 @@ class Range(Attribute):
     is_array: bool = True
     dim: int = 2
 
-
-@dataclass
-class SingleFloat(Attribute):
-    dtype: Union[Type, str] = float
-    is_array: bool = False
-    dim: int = 0
