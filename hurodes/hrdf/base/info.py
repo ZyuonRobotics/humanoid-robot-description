@@ -62,6 +62,12 @@ class Info:
 
         self._data = data
 
+    @classmethod
+    def from_dict(cls, attr: Attribute, attr_dict: Dict[str, Any]):
+        info = cls(attr)
+        info.parse_dict(attr_dict)
+        return info
+
     @property
     def data(self) -> Any:
         return self._data
@@ -98,16 +104,20 @@ class Infos:
 
         self._infos = None
     
-    def parse_flat_dict(self, info_dict: Dict[str, Any]):
-        assert info_dict is not None, "info_dict is required"
-        assert isinstance(info_dict, dict), "info_dict must be a dictionary"
+    def parse_flat_dict(self, flat_dict: Dict[str, Any]):
+        assert flat_dict is not None, "info_dict is required"
+        assert isinstance(flat_dict, dict), "info_dict must be a dictionary"
+        assert len(flat_dict) == len(set(flat_dict.keys())), "Duplicate attribute names found in info_dict"
         
-        assert len(info_dict) == len(set(info_dict.keys())), "Duplicate attribute names found in info_dict"
-        assert set(info_dict.keys()) == set(self.attr_names), "Attribute names in info_dict do not match ATTR_CLASSES"
+        self._infos = {}
+        for attr in self.attrs:
+            self._infos[attr.name] = Info.from_dict(attr, flat_dict)
 
-        # for attr_name, attr_data in info_dict.items():
-        #     self.infos[attr_name].data = attr_data # type: ignore
-        pass
+    @classmethod
+    def from_flat_dict(cls, flat_dict: Dict[str, Any]):
+        infos = cls()
+        infos.parse_flat_dict(flat_dict)
+        return infos
 
     def to_flat_dict(self) -> Dict[str, Any]:
         """
@@ -128,6 +138,7 @@ class Infos:
     def parse_dict(self, info_dict: Dict[str, Any]):
         self._infos = {}
         for attr in self.attrs:
+            assert attr.name in info_dict, f"Attribute {attr.name} not found in info_dict"
             self._infos[attr.name] = Info(attr)
             if info_dict[attr.name] is not None:
                 self._infos[attr.name].data = info_dict[attr.name]
@@ -158,3 +169,10 @@ def save_csv(infos_list: List[Infos], save_path: str):
         
     df = pd.DataFrame(df_list)
     df.to_csv(save_path, index=False)
+
+
+def load_csv(csv_path: str, infos_class: type) -> List[Infos]:
+    df = pd.read_csv(csv_path)
+    df_list = df.to_dict('records')
+    
+    return [infos_class.from_flat_dict(data_dict) for data_dict in df_list]
