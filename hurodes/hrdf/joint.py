@@ -46,3 +46,8 @@ class JointInfos(Infos):
     def specific_parse_mujoco(self, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name
         return info_dict
+
+    def specific_generate_mujoco(self, mujoco_dict, tag=None):
+        del mujoco_dict["body_name"]
+        mujoco_dict["type"] = "hinge"
+        return mujoco_dict

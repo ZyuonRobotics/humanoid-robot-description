@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 
 from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
-from hurodes.utils.typing import dict2str
+from hurodes.hrdf.base.info import Infos, load_csv
+from hurodes.hrdf import INFOS_DICT
 
 def find_by_body_id(all_data, body_id):
     """
@@ -28,6 +29,22 @@ def find_by_body_id(all_data, body_id):
 def get_prefix_name(prefix, name):
     return f"{prefix}_{name}" if prefix else name
 
+def infos_to_dict(infos: Infos) -> dict:
+    """Convert Infos object to flat dictionary for compatibility."""
+    return infos.to_flat_dict()
+
+
+def find_infos_by_attr(attr_name, attr_value, infos_list, return_one=False):
+    res = []
+    for infos in infos_list:
+        if infos[attr_name].data == attr_value:
+            res.append(infos)
+    if return_one:
+        assert len(res) == 1, f"Found multiple infos with attr {attr_name} = {attr_value}"
+        return res[0]
+    else:
+        return res
+
 class UnifiedMJCFGenerator(MJCFGeneratorBase):
     def __init__(
             self,
@@ -39,10 +56,13 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.hrdf_path = hrdf_path
 
         self.body_parent_id: list[int] = []
-        self.data_dict: dict[str, list[dict]] = {}
-        self.mesh_file_type: dict[str, str] = {}
-
-        self.all_collision_names = []
+        self.body_infos_list: list[Infos] = []
+        self.joint_infos_list: list[Infos] = []
+        self.actuator_infos_list: list[Infos] = []
+        self.mesh_infos_list: list[Infos] = []
+        self.simple_geom_infos_list: list[Infos] = []
+        self.ground_dict: dict[str, Infos] = {}
+        self.mesh_file_type = None
 
     def load(self):
         with open(Path(self.hrdf_path, "meta.json"), "r") as f:
@@ -50,67 +70,58 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.body_parent_id = meta_info["body_parent_id"]
         self.mesh_file_type = meta_info["mesh_file_type"]
         self.ground_dict = meta_info["ground"]
-
-        self.data_dict = {}
-        for name in ["body", "joint", "mesh", "collision", "actuator"]:
+    
+        for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             component_csv = Path(self.hrdf_path, f"{name}.csv")
             if component_csv.exists():
-                self.data_dict[name] = pd.read_csv(component_csv).to_dict("records")
+                setattr(self, f"{name}_infos_list", load_csv(str(component_csv), INFOS_DICT[name]))
 
-    def generate_single_body_xml(self, parent_node, body_idx, prefix=None):
-        # body element
-        body_data = self.data_dict["body"][body_idx]
-        body_elem = ET.SubElement(parent_node, 'body')
-        body_elem.set("name", get_prefix_name(prefix, dict2str(body_data, "name")))
-        for key in ["pos", "quat"]:
-            body_elem.set(key, dict2str(body_data, key))
+    def find_infos_by_body_id(self, body_idx, infos_list):
+        body_name = self.body_infos_list[body_idx]["name"].data
+        res = []
+        for infos in infos_list:
+            if infos["body_name"].data == body_name:
+                res.append(infos)
+        return res
 
-        # inertial element
-        inertial_elem = ET.SubElement(body_elem, 'inertial')
-        for key_xml, key_mj in zip(["mass", "pos", "quat", "diaginertia"], ["mass", "ipos", "iquat", "inertia"]):
-            inertial_elem.set(key_xml, dict2str(body_data, key_mj))
+    def find_infos_by_joint_name(self, joint_name, infos_list):
+        res = []
+        for infos in infos_list:
+            if infos["joint_name"].data == joint_name:
+                res.append(infos)
+        return res
 
-        # joint element
-        joint_data_list = find_by_body_id(self.data_dict["joint"], body_idx)
-        assert len(joint_data_list) == 1
-        joint_data = joint_data_list[0]
-        joint_elem = ET.SubElement(body_elem, 'joint')
-        joint_elem.set("name", get_prefix_name(prefix, dict2str(joint_data, "name")))
-        for key in ["type", "pos", "axis", "range", "damping", "stiffness", "armature", "frictionloss"]:
-            joint_elem.set(key, dict2str(joint_data, key))
+    def generate_single_body_xml(self, parent_body, body_idx, prefix=None):
+        body_infos = self.body_infos_list[body_idx]
+        body_name = body_infos["name"].data
+        body_elem = ET.SubElement(parent_body, 'body', attrib=body_infos.to_mujoco_dict("body"))
+        inertial_elem = ET.SubElement(body_elem, 'inertial', attrib=body_infos.to_mujoco_dict("inertial"))
 
-        # mesh element
-        if "mesh" in self.data_dict:
-            mesh_data_list = find_by_body_id(self.data_dict["mesh"], body_idx)
-            for mesh_data in mesh_data_list:
-                mesh_elem = ET.SubElement(body_elem, 'geom')
-                mesh_elem.set("mesh", get_prefix_name(prefix, mesh_data["mesh"]))
-                self.all_collision_names.append(mesh_data["mesh"])
-                for key in ["type", "contype", "conaffinity", "pos", "quat", "rgba"]:
-                    mesh_elem.set(key, dict2str(mesh_data, key))
+        if parent_body.tag == "worldbody":
+            joint_elem = ET.SubElement(body_elem, 'freejoint')
+        else:
+            joint_infos = find_infos_by_attr("body_name", body_name, self.joint_infos_list, return_one=True)
+            joint_elem = ET.SubElement(body_elem, 'joint', attrib=joint_infos.to_mujoco_dict())
 
-        # collision element
-        if "collision" in self.data_dict:
-            collision_data_list = find_by_body_id(self.data_dict["collision"], body_idx)
-            for idx, collision_data in enumerate(collision_data_list):
-                collision_name = f"{dict2str(body_data, 'name')}_{idx}_{collision_data['type']}"
-                collision_elem = ET.SubElement(body_elem, 'geom')
-                self.all_collision_names.append(collision_name)
-                collision_elem.set("rgba", "0 0.7 0.3 0.1")
-                for key in ["type", "pos", "quat", "size", "contype", "conaffinity", "friction"]:
-                    collision_elem.set(key, dict2str(collision_data, key))
+        mesh_infos_list = find_infos_by_attr("body_name", body_name, self.mesh_infos_list)
+        if mesh_infos_list:
+            for mesh_infos in mesh_infos_list:
+                mesh_elem = ET.SubElement(body_elem, 'geom', attrib=mesh_infos.to_mujoco_dict())
 
+        simple_geom_infos_list = find_infos_by_attr("body_name", body_name, self.simple_geom_infos_list)
+        if simple_geom_infos_list:
+            for simple_geom_infos in simple_geom_infos_list:
+                simple_geom_elem = ET.SubElement(body_elem, 'geom', attrib=simple_geom_infos.to_mujoco_dict())
         return body_elem
 
-    def add_all_body(self, parent=None, current_index=0, prefix=None):
+    def recursive_generate_body(self, parent=None, current_index=-1, prefix=None):
         if parent is None:
             parent = self.get_elem("worldbody")
+
         for child_index, parent_idx in enumerate(self.body_parent_id):
-            if child_index == parent_idx: # skip world body
-                continue
-            elif parent_idx == current_index:
+            if parent_idx == current_index:
                 body_elem = self.generate_single_body_xml(parent, child_index, prefix=prefix)
-                self.add_all_body(body_elem, child_index, prefix=prefix)
+                self.recursive_generate_body(body_elem, child_index, prefix=prefix)
 
     def add_compiler(self):
         self.get_elem("compiler").attrib = {
@@ -126,35 +137,30 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
 
     def add_mesh(self, prefix=None):
         asset_elem = self.get_elem("asset")
-        for mesh, file_type in self.mesh_file_type.items():
-            # check mesh file exists
-            mesh_file = Path(self.hrdf_path, "meshes", f"{mesh}.{file_type}")
+        mesh_name_set = set()
+        for mesh_infos in self.mesh_infos_list:
+            mesh_name = mesh_infos["name"].data
+            if mesh_name in mesh_name_set:
+                continue
+
+            mesh_file = Path(self.hrdf_path, "meshes", f"{mesh_name}.{self.mesh_file_type}")
             assert mesh_file.exists(), f"Mesh file {mesh_file} does not exist"
-            mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": get_prefix_name(prefix, mesh), "file": f"{mesh}.{file_type}"})
+            mesh_elem = ET.SubElement(asset_elem, 'mesh', attrib={"name": get_prefix_name(prefix, mesh_name), "file": f"{mesh_name}.{self.mesh_file_type}"})
+            mesh_name_set.add(mesh_name)
 
     def add_actuator(self, prefix=None):
+        if len(self.actuator_infos_list) == 0:
+            return
+            
         actuator_elem = ET.SubElement(self.xml_root, 'actuator')
         
-        # Create a mapping from joint name to actuator data for quick lookup
-        actuator_map = {}
-        for actuator_data in self.data_dict["actuator"]:
-            joint_name = dict2str(actuator_data, "joint")
-            actuator_map[joint_name] = actuator_data
-        
-        # Iterate through joints in their order and add actuators accordingly
-        for joint_data in self.data_dict["joint"]:
-            joint_name = dict2str(joint_data, "name")
-            if joint_name in actuator_map:
-                actuator_data = actuator_map[joint_name]
-                motor_elem = ET.SubElement(actuator_elem, 'motor')
-                motor_elem.set("name", get_prefix_name(prefix, dict2str(actuator_data, "name")))
-                motor_elem.set("joint", get_prefix_name(prefix, joint_name))
-                motor_elem.set("ctrlrange", dict2str(actuator_data, "ctrlrange"))
+        for joint_infos in self.joint_infos_list:
+            actuator_infos = find_infos_by_attr("joint_name", joint_infos["name"].data, self.actuator_infos_list, return_one=True)
+            motor_elem = ET.SubElement(actuator_elem, 'motor', attrib=actuator_infos.to_mujoco_dict())
 
     def generate(self, prefix=None):
         self.add_compiler()
         self.add_default()
         self.add_mesh(prefix=prefix)
-        self.add_all_body(prefix=prefix)
-        if "actuator" in self.data_dict:
-            self.add_actuator(prefix=prefix)
+        self.recursive_generate_body(prefix=prefix)
+        self.add_actuator(prefix=prefix)

@@ -1,6 +1,14 @@
 from typing import Union, Type
 from dataclasses import dataclass, field
 
+def dtype_name(dtype):
+    if isinstance(dtype, Type):
+        return dtype.__name__
+    elif isinstance(dtype, str):
+        return dtype
+    else:
+        raise ValueError(f"Invalid data type: {dtype}")
+
 @dataclass
 class Attribute:
     name: str
@@ -13,6 +21,9 @@ class Attribute:
         # If mujoco_name is not specified, use name as default
         if not self.mujoco_name:
             self.mujoco_name = self.name
+
+    def __repr__(self):
+        return f"Attribute(name={self.name}, dtype={dtype_name(self.dtype)}, is_array={self.is_array}, dim={self.dim})"
 
 
 @dataclass

@@ -48,3 +48,16 @@ class BodyInfos(Infos):
     def specific_parse_mujoco(self, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         info_dict["id"] = part_model.id - 1 # skip the world body
         return info_dict
+
+    def specific_generate_mujoco(self, mujoco_dict, tag=None):
+        if tag == "body":
+            mujoco_dict = {name: mujoco_dict[name] for name in ["name", "pos", "quat"]}
+        elif tag == "inertial":
+            for name in ["name", "pos", "quat", "id"]:
+                del mujoco_dict[name]
+            mujoco_dict["diaginertia"] = mujoco_dict.pop("inertia")
+            mujoco_dict["pos"] = mujoco_dict.pop("ipos")
+            mujoco_dict["quat"] = mujoco_dict.pop("iquat")
+        else:
+            raise ValueError(f"Invalid tag: {tag}")
+        return mujoco_dict

@@ -4,7 +4,7 @@ import pandas as pd
 import re
 from dataclasses import dataclass
 
-from hurodes.hrdf.base.attribute import Attribute
+from hurodes.hrdf.base.attribute import Attribute, dtype_name
 
 
 
@@ -95,6 +95,15 @@ class Info:
             else:
                 return {f"{self.name}{i}": self.dtype(self.data[i]) for i in range(self.dim)}
 
+    def to_string(self):
+        if not self.is_array:
+            return str(self.data)
+        else:
+            return " ".join([str(data) for data in self.data])
+
+    def __repr__(self):
+        return f"Info(name={self.name}, dtype={dtype_name(self.dtype)}, is_array={self.is_array}, dim={self.dim})"
+
 class Infos:
     def __init__(self, attrs: List[Attribute] = None):
         self.attrs = attrs
@@ -112,6 +121,10 @@ class Infos:
         self._infos = {}
         for attr in self.attrs:
             self._infos[attr.name] = Info.from_dict(attr, flat_dict)
+
+    @property
+    def infos(self):
+        return self._infos
 
     @classmethod
     def from_flat_dict(cls, flat_dict: Dict[str, Any]):
@@ -161,6 +174,29 @@ class Infos:
 
     def specific_parse_mujoco(self, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         return info_dict
+
+    def to_mujoco_dict(self, tag=None):
+        mujoco_dict = {}
+        for attr in self.attrs:
+            mujoco_dict[attr.mujoco_name] = self[attr.name].to_string()
+        mujoco_dict = self.specific_generate_mujoco(mujoco_dict, tag)
+
+        mujoco_dict = {k: v for k, v in mujoco_dict.items() if v != "nan"}
+        return mujoco_dict
+
+    def specific_generate_mujoco(self, mujoco_dict, tag=None):
+        return mujoco_dict
+
+    def __repr__(self):
+        string = "Infos(\n"
+        for attr in self.attrs:
+            string += f"    {attr.name}: {dtype_name(attr.dtype)}[{attr.dim}] = {self[attr.name].data}\n"
+        string += ")"
+        return string
+
+    def __getitem__(self, key: str):
+        assert key in self._infos, f"Attribute {key} not found in infos"
+        return self._infos[key]
 
 def save_csv(infos_list: List[Infos], save_path: str):
     assert len(infos_list) > 0, "infos_list is empty"

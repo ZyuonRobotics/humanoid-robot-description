@@ -63,7 +63,10 @@ class MJCFGeneratorBase(GeneratorBase):
         # ground
         worldbody_elem = self.get_elem("worldbody")
         light_elem = ET.SubElement(worldbody_elem, 'light', attrib=DEFAULT_SKY_LIGHT_ATTR)
-        ground_attr = DEFAULT_GROUND_GEOM_ATTR | (self.ground_dict or {})
+        ground_attr = DEFAULT_GROUND_GEOM_ATTR
+        ground_attr["contype"] = self.ground_dict["contype"]
+        ground_attr["conaffinity"] = self.ground_dict["conaffinity"]
+        ground_attr["friction"] = f"{self.ground_dict['static_friction']} 0.005 0.0001"
         geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
 
     def build(self):
