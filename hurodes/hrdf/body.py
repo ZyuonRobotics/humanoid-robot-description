@@ -44,3 +44,7 @@ class BodyInfos(Infos):
         attrs = [attr_class() for attr_class in ATTR_CLASSES]
 
         super().__init__(attrs)
+
+    def specific_parse_mujoco(self, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+        info_dict["id"] = part_model.id - 1 # skip the world body
+        return info_dict
