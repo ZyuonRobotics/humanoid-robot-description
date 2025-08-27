@@ -4,6 +4,7 @@ from pathlib import Path
 import mujoco
 
 from hurodes.format_parser.base_parser import BaseParser
+from hurodes.hrdf.actuator import ActuatorInfos
 
 class UnifiedURDFParser(BaseParser):
     def __init__(self, mjcf_path, mesh_dir_path=None):
@@ -91,15 +92,26 @@ class UnifiedURDFParser(BaseParser):
             self.root.insert(1, dummy_joint)
 
     def fix_actuator(self):
+        # Initialize actuator_infos_list if it doesn't exist
+        if self.actuator_infos_list is None:
+            self.actuator_infos_list = []
+            
         for joint in self.root.findall("joint"):
+            if joint.attrib['type'] != 'revolute':
+                continue
             limit = joint.find("limit")
-            if limit is not None and "effort" in limit.attrib:
-                self.model_dict["actuator"].append({
+            actuator_info_dict = {
                     "name": f"{joint.attrib['name']}_motor",
-                    "joint": joint.attrib['name'],
-                    "ctrlrange0": -float(limit.attrib['effort']),
-                    "ctrlrange1": float(limit.attrib['effort']),
-                })
+                    "joint_name": joint.attrib['name'],
+                }
+            if limit is not None:
+                if "effort" in limit.attrib:
+                    actuator_info_dict["peak_torque"] = float(limit.attrib['effort'])
+                if "velocity" in limit.attrib:
+                    actuator_info_dict["peak_velocity"] = float(limit.attrib['velocity'])
+
+            actuator_infos = ActuatorInfos.from_dict(actuator_info_dict)
+            self.actuator_infos_list.append(actuator_infos)
 
     @property
     def mujoco_spec(self):
