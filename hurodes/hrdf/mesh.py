@@ -22,8 +22,8 @@ class MeshInfo(InfoBase):
 
     @classmethod
     def specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
-        info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name
-        info_dict["name"] = part_spec.meshname
+        info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name.replace("-", "_")
+        info_dict["name"] = part_spec.meshname.replace("-", "_")
 
         # idk why, but the value from part_model(_MjModelGeomViews) is wrong
         info_dict["pos"] = part_spec.pos

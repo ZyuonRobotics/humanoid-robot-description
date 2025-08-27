@@ -74,7 +74,7 @@ def get_mesh_dict(spec, file_path):
     assert meshdir.exists(), f"Mesh directory {meshdir} does not exist."
 
     for mesh in spec.meshes:
-        mesh_path[mesh.name] = meshdir /  mesh.file
+        mesh_path[mesh.name.replace("-", "_")] = meshdir /  mesh.file
         mesh_file_types.append(mesh.file.split('.')[-1].lower())
 
     assert len(set(mesh_file_types)) == 1, "All mesh files must have the same file type."
@@ -136,7 +136,8 @@ class BaseParser(ABC):
         
         for info_name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             info_list = getattr(self, f"{info_name}_info_list")
-            save_csv(info_list, save_path / f"{info_name}.csv")
+            if len(info_list) > 0:
+                save_csv(info_list, save_path / f"{info_name}.csv")
 
     def print_body_tree(self, colorful=False):
         pass

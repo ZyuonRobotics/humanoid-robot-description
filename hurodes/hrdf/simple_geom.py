@@ -95,7 +95,8 @@ class SimpleGeomInfo(InfoBase):
 
     @classmethod
     def specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
-        info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name
+        info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name.replace("-", "_")
+        info_dict["name"] = part_spec.name.replace("-", "_")
         info_dict["static_friction"] = part_model.friction[0]
         info_dict["dynamic_friction"] = part_model.friction[0]
         info_dict["restitution"] = None

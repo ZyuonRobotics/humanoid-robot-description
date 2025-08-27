@@ -71,8 +71,6 @@ class InfoBase:
         mujoco_dict = self.specific_generate_mujoco(mujoco_dict, tag)
 
         mujoco_dict = {k: v for k, v in mujoco_dict.items() if v != "nan"}
-        # Ensure all values are strings to prevent XML serialization errors
-        mujoco_dict = {k: str(v) if v is not None else "0" for k, v in mujoco_dict.items()}
         return mujoco_dict
 
     def specific_generate_mujoco(self, mujoco_dict, tag=None):
@@ -96,8 +94,6 @@ class InfoBase:
         urdf_dict = self.specific_generate_urdf(urdf_dict, tag)
 
         urdf_dict = {k: v for k, v in urdf_dict.items() if v != "nan"}
-        # Ensure all values are strings to prevent XML serialization errors
-        urdf_dict = {k: str(v) if v is not None else "0" for k, v in urdf_dict.items()}
         return urdf_dict
 
     def specific_generate_urdf(self, urdf_dict, tag=None):

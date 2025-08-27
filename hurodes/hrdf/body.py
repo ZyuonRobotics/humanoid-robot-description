@@ -57,6 +57,7 @@ class BodyInfo(InfoBase):
     @classmethod
     def specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         info_dict["id"] = part_model.id - 1 # skip the world body
+        info_dict["name"] = part_model.name.replace("-", "_")
         return info_dict
 
     def specific_generate_mujoco(self, mujoco_dict, tag=None):
