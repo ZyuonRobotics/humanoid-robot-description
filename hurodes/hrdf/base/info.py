@@ -2,213 +2,138 @@ from typing import List, Type, Dict, Any, ClassVar, Optional, Union
 import numpy as np
 import pandas as pd
 import re
-from dataclasses import dataclass
 
-from hurodes.hrdf.base.attribute import Attribute, dtype_name
+from bidict import bidict
 
+from hurodes.hrdf.base.attribute import AttributeBase
 
+class InfoBase:
+    info_name: str = ""
+    attr_classes: tuple[AttributeBase] = ()
 
-class Info:
-    type_map = {'int': int, 'float': float, 'str': str, 'bool': bool}
-
-    def __init__(self, attr: Attribute):
-        self.name = attr.name
-        self.dtype = attr.dtype
-        self.is_array = attr.is_array
-        self.dim = attr.dim
-
-        if isinstance(self.dtype, str):
-            self.dtype = self.type_map[self.dtype]
-        else:
-            assert isinstance(self.dtype, Type), f"Invalid data type: {self.dtype}"
-
-        if self.is_array:
-            assert self.dim > 1, "Array must have dimension > 1"
-        else:
-            assert self.dim == 0
-
-        self._data = None
-
-    def type_convert(self, data: Any) -> Any:
-        try:
-            return self.dtype(data)
-        except ValueError:
-            raise ValueError(f"Invalid data type: {self.dtype}")
-    
-    def parse_string(self, string: str):
-        if not self.is_array:
-            data = self.type_convert(string)
-        else:
-            data = string.split()
-            assert len(data) == self.dim, f"Expected {self.dim} elements, but got {len(data)}"
-            data = [self.type_convert(elem) for elem in data]
-            if self.dtype != str:
-                data = np.array(data)
-
-        self._data = data
-
-    def parse_dict(self, attr_dict: Dict[str, Any]):
-        assert attr_dict is not None and isinstance(attr_dict, dict), "attr_dict must be a dictionary"
-        
-        if not self.is_array:
-            assert self.name in attr_dict, f"Attribute {self.name} not found in attr_dict"
-            data = self.type_convert(attr_dict[self.name])
-        else:
-            for i in range(self.dim):
-                assert f"{self.name}{i}" in attr_dict, f"Attribute {self.name}{i} not found in attr_dict"
-            data = [self.type_convert(attr_dict[f"{self.name}{i}"]) for i in range(self.dim)]
-            if self.dtype != str:
-                data = np.array(data)
-
-        self._data = data
-
-    @classmethod
-    def from_dict(cls, attr: Attribute, attr_dict: Dict[str, Any]):
-        info = cls(attr)
-        info.parse_dict(attr_dict)
-        return info
-
-    @property
-    def data(self) -> Any:
-        return self._data
-
-    @data.setter
-    def data(self, data: Union[int, str, float, bool, np.ndarray]):
-        if not self.is_array:
-            data = self.type_convert(data)
-        else:
-            assert isinstance(data, np.ndarray), f"Invalid data type: {type(data)}, expected: np.ndarray"
-            assert data.shape == (self.dim,), f"Invalid data shape: {data.shape}, expected: {self.dim}"
-            data = data.astype(self.dtype)
-        self._data = data
-
-    
-    def to_dict(self) -> Dict[str, Any]:
-        if not self.is_array:
-            if self.data is None:
-                return {self.name: None}
-            else:
-                return {self.name: self.dtype(self.data)}
-        else:
-            if self.data is None:
-                return {f"{self.name}{i}": None for i in range(self.dim)}
-            else:
-                return {f"{self.name}{i}": self.dtype(self.data[i]) for i in range(self.dim)}
-
-    def to_string(self):
-        if not self.is_array:
-            return str(self.data)
-        else:
-            return " ".join([str(data) for data in self.data])
-
-    def __repr__(self):
-        return f"Info(name={self.name}, dtype={dtype_name(self.dtype)}, is_array={self.is_array}, dim={self.dim})"
-
-class Infos:
-    def __init__(self, attrs: List[Attribute] = None):
-        self.attrs = attrs
-        self.attr_names = [attr.name for attr in attrs]
-
-        assert len(self.attr_names) == len(set(self.attr_names)), "Duplicate attribute names found in attrs"
-
-        self._infos = None
-    
     def parse_flat_dict(self, flat_dict: Dict[str, Any]):
         assert flat_dict is not None, "info_dict is required"
         assert isinstance(flat_dict, dict), "info_dict must be a dictionary"
-        assert len(flat_dict) == len(set(flat_dict.keys())), "Duplicate attribute names found in info_dict"
         
-        self._infos = {}
-        for attr in self.attrs:
-            self._infos[attr.name] = Info.from_dict(attr, flat_dict)
-
-    @property
-    def infos(self):
-        return self._infos
+        self._dict: Dict[str, AttributeBase] = {}
+        for attr_class in self.attr_classes:
+            self._dict[attr_class.name] = attr_class.from_flat_dict(flat_dict)
 
     @classmethod
     def from_flat_dict(cls, flat_dict: Dict[str, Any]):
-        infos = cls()
-        infos.parse_flat_dict(flat_dict)
-        return infos
+        info = cls()
+        info.parse_flat_dict(flat_dict)
+        return info
 
     def to_flat_dict(self) -> Dict[str, Any]:
-        """
-        Convert BaseAttrList to dictionary format
-        
-        Returns:
-            Dict[str, Any]: Dictionary containing all attributes in key-value format
-        """
-        if self._infos is None:
-            return {}
-        
         result = {}
-        for name, info in self._infos.items():
-            result.update(info.to_dict())
-        
+        for attr_value in self._dict.values():
+            result.update(attr_value.to_dict())
         return result
 
     def parse_dict(self, info_dict: Dict[str, Any]):
-        self._infos = {}
-        for attr in self.attrs:
-            assert attr.name in info_dict, f"Attribute {attr.name} not found in info_dict"
-            self._infos[attr.name] = Info(attr)
-            if info_dict[attr.name] is not None:
-                self._infos[attr.name].data = info_dict[attr.name]
+        self._dict = {}
+        for attr_class in self.attr_classes:
+            if attr_class.name not in info_dict:
+                info_dict[attr_class.name] = None
+            self._dict[attr_class.name] = attr_class.from_data(info_dict[attr_class.name])
+
+    @classmethod
+    def from_dict(cls, info_dict: Dict[str, Any]):
+        info = cls()
+        info.parse_dict(info_dict)
+        return info
 
     @classmethod
     def from_mujoco(cls, part_model, part_spec=None, whole_model=None, whole_spec=None):
         """
         This function is used to parse the information from the mujoco model and spec.
         """
-        infos = cls()
-
         info_dict = {}
-        info_dict = infos.specific_parse_mujoco(info_dict, part_model, part_spec, whole_model, whole_spec)
-        
-        for attr in infos.attrs:
-            if attr.name not in info_dict:
-                info_dict[attr.name] = getattr(part_model, attr.mujoco_name)
-        infos.parse_dict(info_dict)
-        return infos
+        info_dict = cls.specific_parse_mujoco(info_dict, part_model, part_spec, whole_model, whole_spec)
 
-    def specific_parse_mujoco(self, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+        for attr_class in cls.attr_classes:
+            if attr_class.mujoco_name is None:
+                info_dict[attr_class.name] = None
+            elif attr_class.name not in info_dict:
+                info_dict[attr_class.name] = getattr(part_model, attr_class.mujoco_name)
+        return cls.from_dict(info_dict)
+
+    @classmethod
+    def specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         return info_dict
 
     def to_mujoco_dict(self, tag=None):
         mujoco_dict = {}
-        for attr in self.attrs:
-            mujoco_dict[attr.mujoco_name] = self[attr.name].to_string()
+        for attr_class in self.attr_classes:
+            if attr_class.mujoco_name is not None:
+                mujoco_dict[attr_class.mujoco_name] = self[attr_class.name].to_string()
         mujoco_dict = self.specific_generate_mujoco(mujoco_dict, tag)
 
         mujoco_dict = {k: v for k, v in mujoco_dict.items() if v != "nan"}
+        # Ensure all values are strings to prevent XML serialization errors
+        mujoco_dict = {k: str(v) if v is not None else "0" for k, v in mujoco_dict.items()}
         return mujoco_dict
 
     def specific_generate_mujoco(self, mujoco_dict, tag=None):
         return mujoco_dict
 
+    def to_urdf_dict(self, tag=None):
+        """
+        Convert Info object to URDF dictionary format.
+        
+        Args:
+            tag: URDF tag type to generate attributes for (e.g., 'link', 'joint', 'limit', etc.)
+            
+        Returns:
+            Dictionary with URDF-specific attribute names and values
+        """
+        urdf_dict = {}
+        for attr_class in self.attr_classes:
+            # Use attribute name as URDF name by default (can be overridden by urdf_name)
+            urdf_name = getattr(attr_class, 'urdf_name', attr_class.name)
+            urdf_dict[urdf_name] = self[attr_class.name].to_string()
+        urdf_dict = self.specific_generate_urdf(urdf_dict, tag)
+
+        urdf_dict = {k: v for k, v in urdf_dict.items() if v != "nan"}
+        # Ensure all values are strings to prevent XML serialization errors
+        urdf_dict = {k: str(v) if v is not None else "0" for k, v in urdf_dict.items()}
+        return urdf_dict
+
+    def specific_generate_urdf(self, urdf_dict, tag=None):
+        """
+        Override this method in subclasses to provide URDF-specific transformations.
+        
+        Args:
+            urdf_dict: Dictionary with raw attribute values
+            tag: URDF tag type being generated
+            
+        Returns:
+            Transformed dictionary for the specific URDF tag
+        """
+        return urdf_dict
+
     def __repr__(self):
-        string = "Infos(\n"
-        for attr in self.attrs:
-            string += f"    {attr.name}: {dtype_name(attr.dtype)}[{attr.dim}] = {self[attr.name].data}\n"
+        string = f"{self.info_name}(\n"
+        for attr_class in self.attr_classes:
+            string += f"    {attr_class}\n"
         string += ")"
         return string
 
     def __getitem__(self, key: str):
-        assert key in self._infos, f"Attribute {key} not found in infos"
-        return self._infos[key]
+        assert key in self._dict, f"Attribute {key} not found in info"
+        return self._dict[key]
 
-def save_csv(infos_list: List[Infos], save_path: str):
-    assert len(infos_list) > 0, "infos_list is empty"
-    
-    df_list = [infos.to_flat_dict() for infos in infos_list]
+def save_csv(info_list: List[InfoBase], save_path: str):
+    assert len(info_list) > 0, "info_list is empty"
+    df_list = [info.to_flat_dict() for info in info_list]
         
     df = pd.DataFrame(df_list)
     df.to_csv(save_path, index=False)
 
 
-def load_csv(csv_path: str, infos_class: type) -> List[Infos]:
+def load_csv(csv_path: str, info_class: type) -> List[InfoBase]:
     df = pd.read_csv(csv_path)
     df_list = df.to_dict('records')
     
-    return [infos_class.from_flat_dict(data_dict) for data_dict in df_list]
+    return [info_class.from_flat_dict(data_dict) for data_dict in df_list]

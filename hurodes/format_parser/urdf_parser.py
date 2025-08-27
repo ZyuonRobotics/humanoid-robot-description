@@ -4,7 +4,7 @@ from pathlib import Path
 import mujoco
 
 from hurodes.format_parser.base_parser import BaseParser
-from hurodes.hrdf.actuator import ActuatorInfos
+from hurodes.hrdf.actuator import ActuatorInfo
 
 class UnifiedURDFParser(BaseParser):
     def __init__(self, mjcf_path, mesh_dir_path=None):
@@ -92,9 +92,9 @@ class UnifiedURDFParser(BaseParser):
             self.root.insert(1, dummy_joint)
 
     def fix_actuator(self):
-        # Initialize actuator_infos_list if it doesn't exist
-        if self.actuator_infos_list is None:
-            self.actuator_infos_list = []
+        # Initialize actuator_info_list if it doesn't exist
+        if self.actuator_info_list is None:
+            self.actuator_info_list = []
             
         for joint in self.root.findall("joint"):
             if joint.attrib['type'] != 'revolute':
@@ -110,8 +110,8 @@ class UnifiedURDFParser(BaseParser):
                 if "velocity" in limit.attrib:
                     actuator_info_dict["peak_velocity"] = float(limit.attrib['velocity'])
 
-            actuator_infos = ActuatorInfos.from_dict(actuator_info_dict)
-            self.actuator_infos_list.append(actuator_infos)
+            actuator_info = ActuatorInfo.from_dict(actuator_info_dict)
+            self.actuator_info_list.append(actuator_info)
 
     @property
     def mujoco_spec(self):
@@ -126,6 +126,12 @@ class UnifiedURDFParser(BaseParser):
         self.fix_urdf(base_link_name)
         super().parse()
         self.fix_actuator()
+        
+        self.ground_dict = {
+            "contype": "1",
+            "conaffinity": "1",
+            "static_friction": "1.",
+        }
 
     def print_body_tree(self, colorful=False):
         print("print_body_tree Not implemented")

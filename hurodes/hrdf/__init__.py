@@ -1,13 +1,13 @@
-from hurodes.hrdf.actuator import ActuatorInfos
-from hurodes.hrdf.body import BodyInfos
-from hurodes.hrdf.simple_geom import SimpleGeomInfos
-from hurodes.hrdf.joint import JointInfos
-from hurodes.hrdf.mesh import MeshInfos
+from hurodes.hrdf.actuator import ActuatorInfo
+from hurodes.hrdf.body import BodyInfo
+from hurodes.hrdf.simple_geom import SimpleGeomInfo
+from hurodes.hrdf.joint import JointInfo
+from hurodes.hrdf.mesh import MeshInfo
 
-INFOS_DICT = {
-    "actuator": ActuatorInfos,
-    "body": BodyInfos,
-    "simple_geom": SimpleGeomInfos,
-    "joint": JointInfos,
-    "mesh": MeshInfos
+INFO_DICT = {
+    "actuator": ActuatorInfo,
+    "body": BodyInfo,
+    "simple_geom": SimpleGeomInfo,
+    "joint": JointInfo,
+    "mesh": MeshInfo
 }

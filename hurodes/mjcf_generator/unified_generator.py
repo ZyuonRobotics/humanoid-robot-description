@@ -11,36 +11,20 @@ import numpy as np
 import pandas as pd
 
 from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
-from hurodes.hrdf.base.info import Infos, load_csv
-from hurodes.hrdf import INFOS_DICT
-
-def find_by_body_id(all_data, body_id):
-    """
-    Find all data with the same bodyid.
-    """
-    res = []
-    for data in all_data:
-        if data["bodyid"] == body_id:
-            data_copy = deepcopy(data)
-            del data_copy["bodyid"]
-            res.append(data_copy)
-    return res
+from hurodes.hrdf.base.info import InfoBase, load_csv
+from hurodes.hrdf import INFO_DICT
 
 def get_prefix_name(prefix, name):
     return f"{prefix}_{name}" if prefix else name
 
-def infos_to_dict(infos: Infos) -> dict:
-    """Convert Infos object to flat dictionary for compatibility."""
-    return infos.to_flat_dict()
 
-
-def find_infos_by_attr(attr_name, attr_value, infos_list, return_one=False):
+def find_info_by_attr(attr_name, attr_value, info_list, return_one=False):
     res = []
-    for infos in infos_list:
-        if infos[attr_name].data == attr_value:
-            res.append(infos)
+    for info in info_list:
+        if info[attr_name].data == attr_value:
+            res.append(info)
     if return_one:
-        assert len(res) == 1, f"Found multiple infos with attr {attr_name} = {attr_value}"
+        assert len(res) == 1, f"Found multiple info with attr {attr_name} = {attr_value}"
         return res[0]
     else:
         return res
@@ -56,12 +40,12 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         self.hrdf_path = hrdf_path
 
         self.body_parent_id: list[int] = []
-        self.body_infos_list: list[Infos] = []
-        self.joint_infos_list: list[Infos] = []
-        self.actuator_infos_list: list[Infos] = []
-        self.mesh_infos_list: list[Infos] = []
-        self.simple_geom_infos_list: list[Infos] = []
-        self.ground_dict: dict[str, Infos] = {}
+        self.body_info_list: list[InfoBase] = []
+        self.joint_info_list: list[InfoBase] = []
+        self.actuator_info_list: list[InfoBase] = []
+        self.mesh_info_list: list[InfoBase] = []
+        self.simple_geom_info_list: list[InfoBase] = []
+        self.ground_dict: dict[str, InfoBase] = {}
         self.mesh_file_type = None
 
     def load(self):
@@ -74,44 +58,29 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
         for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             component_csv = Path(self.hrdf_path, f"{name}.csv")
             if component_csv.exists():
-                setattr(self, f"{name}_infos_list", load_csv(str(component_csv), INFOS_DICT[name]))
-
-    def find_infos_by_body_id(self, body_idx, infos_list):
-        body_name = self.body_infos_list[body_idx]["name"].data
-        res = []
-        for infos in infos_list:
-            if infos["body_name"].data == body_name:
-                res.append(infos)
-        return res
-
-    def find_infos_by_joint_name(self, joint_name, infos_list):
-        res = []
-        for infos in infos_list:
-            if infos["joint_name"].data == joint_name:
-                res.append(infos)
-        return res
+                setattr(self, f"{name}_info_list", load_csv(str(component_csv), INFO_DICT[name]))
 
     def generate_single_body_xml(self, parent_body, body_idx, prefix=None):
-        body_infos = self.body_infos_list[body_idx]
-        body_name = body_infos["name"].data
-        body_elem = ET.SubElement(parent_body, 'body', attrib=body_infos.to_mujoco_dict("body"))
-        inertial_elem = ET.SubElement(body_elem, 'inertial', attrib=body_infos.to_mujoco_dict("inertial"))
+        body_info = self.body_info_list[body_idx]
+        body_name = body_info["name"].data
+        body_elem = ET.SubElement(parent_body, 'body', attrib=body_info.to_mujoco_dict("body"))
+        inertial_elem = ET.SubElement(body_elem, 'inertial', attrib=body_info.to_mujoco_dict("inertial"))
 
         if parent_body.tag == "worldbody":
             joint_elem = ET.SubElement(body_elem, 'freejoint')
         else:
-            joint_infos = find_infos_by_attr("body_name", body_name, self.joint_infos_list, return_one=True)
-            joint_elem = ET.SubElement(body_elem, 'joint', attrib=joint_infos.to_mujoco_dict())
+            joint_info = find_info_by_attr("body_name", body_name, self.joint_info_list, return_one=True)
+            joint_elem = ET.SubElement(body_elem, 'joint', attrib=joint_info.to_mujoco_dict())
 
-        mesh_infos_list = find_infos_by_attr("body_name", body_name, self.mesh_infos_list)
-        if mesh_infos_list:
-            for mesh_infos in mesh_infos_list:
-                mesh_elem = ET.SubElement(body_elem, 'geom', attrib=mesh_infos.to_mujoco_dict())
+        mesh_info_list = find_info_by_attr("body_name", body_name, self.mesh_info_list)
+        if mesh_info_list:
+            for mesh_info in mesh_info_list:
+                mesh_elem = ET.SubElement(body_elem, 'geom', attrib=mesh_info.to_mujoco_dict())
 
-        simple_geom_infos_list = find_infos_by_attr("body_name", body_name, self.simple_geom_infos_list)
-        if simple_geom_infos_list:
-            for simple_geom_infos in simple_geom_infos_list:
-                simple_geom_elem = ET.SubElement(body_elem, 'geom', attrib=simple_geom_infos.to_mujoco_dict())
+        simple_geom_info_list = find_info_by_attr("body_name", body_name, self.simple_geom_info_list)
+        if simple_geom_info_list:
+            for simple_geom_info in simple_geom_info_list:
+                simple_geom_elem = ET.SubElement(body_elem, 'geom', attrib=simple_geom_info.to_mujoco_dict())
         return body_elem
 
     def recursive_generate_body(self, parent=None, current_index=-1, prefix=None):
@@ -138,8 +107,8 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
     def add_mesh(self, prefix=None):
         asset_elem = self.get_elem("asset")
         mesh_name_set = set()
-        for mesh_infos in self.mesh_infos_list:
-            mesh_name = mesh_infos["name"].data
+        for mesh_info in self.mesh_info_list:
+            mesh_name = mesh_info["name"].data
             if mesh_name in mesh_name_set:
                 continue
 
@@ -149,14 +118,14 @@ class UnifiedMJCFGenerator(MJCFGeneratorBase):
             mesh_name_set.add(mesh_name)
 
     def add_actuator(self, prefix=None):
-        if len(self.actuator_infos_list) == 0:
+        if len(self.actuator_info_list) == 0:
             return
             
         actuator_elem = ET.SubElement(self.xml_root, 'actuator')
         
-        for joint_infos in self.joint_infos_list:
-            actuator_infos = find_infos_by_attr("joint_name", joint_infos["name"].data, self.actuator_infos_list, return_one=True)
-            motor_elem = ET.SubElement(actuator_elem, 'motor', attrib=actuator_infos.to_mujoco_dict())
+        for joint_info in self.joint_info_list:
+            actuator_info = find_info_by_attr("joint_name", joint_info["name"].data, self.actuator_info_list, return_one=True)
+            motor_elem = ET.SubElement(actuator_elem, 'motor', attrib=actuator_info.to_mujoco_dict())
 
     def generate(self, prefix=None):
         self.add_compiler()
