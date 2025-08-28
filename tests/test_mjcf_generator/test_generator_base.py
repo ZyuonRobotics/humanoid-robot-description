@@ -28,7 +28,12 @@ def test_mjcf_generator_timestep():
 
 def test_add_scene_and_build():
     generator = MJCFGeneratorBaseStub()
-    generator.ground_dict = {"size": "1 1 0.1"}
+    generator.ground_dict = {
+        "size": "1 1 0.1",
+        "contype": "1",
+        "conaffinity": "15",
+        "static_friction": "1.0"
+    }
     generator.add_scene()
     # Check if visual, asset, and worldbody elements are present
     assert generator.get_elem("visual") is not None
@@ -38,6 +43,13 @@ def test_add_scene_and_build():
 
 def test_export_returns_string(tmp_path):
     generator = MJCFGeneratorBaseStub()
+    # Set ground_dict before calling export which calls build() -> add_scene()
+    generator.ground_dict = {
+        "size": "1 1 0.1",
+        "contype": "1",
+        "conaffinity": "15",
+        "static_friction": "1.0"
+    }
     xml_str = generator.export()
     assert isinstance(xml_str, str)
     # Test export to file
