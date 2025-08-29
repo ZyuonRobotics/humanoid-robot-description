@@ -1,7 +1,7 @@
 import os
 import click
 
-from hurodes.format_parser import UnifiedMJCFParser, UnifiedURDFParser
+from hurodes.parsers import UnifiedMJCFParser, UnifiedURDFParser
 from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
 
 @click.command()

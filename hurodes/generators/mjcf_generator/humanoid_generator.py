@@ -10,13 +10,13 @@ from colorama import Fore, Style
 import numpy as np
 import pandas as pd
 
-from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
+from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
 from hurodes.hrdf.hrdf import HumanoidRobot
 
 def get_prefix_name(prefix, name):
     return f"{prefix}_{name}" if prefix else name
 
-class UnifiedMJCFGenerator(MJCFGeneratorBase):
+class HumanoidMJCFGenerator(MJCFGeneratorBase):
     def __init__(
             self,
             hrdf_path,

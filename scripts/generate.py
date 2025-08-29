@@ -4,8 +4,8 @@ import click
 import mujoco
 import mujoco.viewer
 
-from hurodes.mjcf_generator.unified_generator import UnifiedMJCFGenerator
-from hurodes.urdf_generator.unified_generator import UnifiedURDFGenerator
+from hurodes.generators.mjcf_generator.humanoid_generator import HumanoidMJCFGenerator
+from hurodes.generators.urdf_generator.humanoid_generator import HumanoidURDFGenerator
 from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
 
 @click.command()
@@ -15,10 +15,10 @@ def main(robot_name, format_type):
     hrdf_path = os.path.join(ROBOTS_PATH, robot_name)
 
     if format_type == "mjcf":
-        generator = UnifiedMJCFGenerator(hrdf_path)
+        generator = HumanoidMJCFGenerator(hrdf_path)
         output_filename = "robot.xml"
     elif format_type == "urdf":
-        generator = UnifiedURDFGenerator(hrdf_path)
+        generator = HumanoidURDFGenerator(hrdf_path)
         output_filename = "robot.urdf"
     else:
         raise ValueError(f"Invalid format type: {format_type}")

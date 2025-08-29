@@ -60,16 +60,16 @@ class BodyInfo(InfoBase):
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
         if tag == "body":
-            mujoco_dict = {name: mujoco_dict[name] for name in ["name", "pos", "quat"]}
+            return {name: mujoco_dict[name] for name in ["name", "pos", "quat"]}
         elif tag == "inertial":
-            for name in ["name", "pos", "quat", "id"]:
-                del mujoco_dict[name]
-            mujoco_dict["diaginertia"] = mujoco_dict.pop("inertia")
-            mujoco_dict["pos"] = mujoco_dict.pop("ipos")
-            mujoco_dict["quat"] = mujoco_dict.pop("iquat")
+            return {
+                "diaginertia": mujoco_dict["inertia"],
+                "mass": mujoco_dict["mass"],
+                "pos": mujoco_dict["ipos"],
+                "quat": mujoco_dict["iquat"]
+            }
         else:
             raise ValueError(f"Invalid tag: {tag}")
-        return mujoco_dict
 
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
         if tag == "link":

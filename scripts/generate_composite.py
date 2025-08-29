@@ -4,8 +4,8 @@ import click
 import mujoco
 import mujoco.viewer
 
-from hurodes.mjcf_generator.unified_generator import UnifiedMJCFGenerator
-from hurodes.mjcf_generator.generator_composite import MJCFGeneratorComposite
+from hurodes.generators.mjcf_generator.unified_generator import UnifiedMJCFGenerator
+from hurodes.generators.mjcf_generator.generator_composite import MJCFGeneratorComposite
 from hurodes import ROBOTS_PATH
 
 @click.command()

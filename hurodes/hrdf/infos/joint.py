@@ -58,7 +58,6 @@ class JointInfo(InfoBase):
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
-        del mujoco_dict["body_name"]
         mujoco_dict["type"] = "hinge"
         return mujoco_dict
 

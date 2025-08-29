@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 
-from hurodes.generator_base import GeneratorBase
-from hurodes.mjcf_generator.constants import *
+from hurodes.generators.generator_base import GeneratorBase
+from hurodes.generators.mjcf_generator.constants import *
 from hurodes.utils.printing import get_elem_tree_str
 
 class MJCFGeneratorBase(GeneratorBase):
@@ -64,9 +64,9 @@ class MJCFGeneratorBase(GeneratorBase):
         worldbody_elem = self.get_elem("worldbody")
         light_elem = ET.SubElement(worldbody_elem, 'light', attrib=DEFAULT_SKY_LIGHT_ATTR)
         ground_attr = DEFAULT_GROUND_GEOM_ATTR
-        ground_attr["contype"] = self.ground_dict["contype"]
-        ground_attr["conaffinity"] = self.ground_dict["conaffinity"]
-        ground_attr["friction"] = f"{self.ground_dict['static_friction']} 0.005 0.0001"
+        ground_attr["contype"] = self.ground_dict["contype"] if self.ground_dict else "1"
+        ground_attr["conaffinity"] = self.ground_dict["conaffinity"] if self.ground_dict else "1"
+        ground_attr["friction"] = f"{self.ground_dict['static_friction']} 0.005 0.0001" if self.ground_dict else "1 0.005 0.0001"
         geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
 
     def build(self):

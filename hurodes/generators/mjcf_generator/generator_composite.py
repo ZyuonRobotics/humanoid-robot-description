@@ -2,7 +2,7 @@ from typing import Union, List, Dict
 from pathlib import Path
 import os
 
-from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
+from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
 
 
 class MJCFGeneratorComposite(MJCFGeneratorBase):
@@ -82,13 +82,13 @@ if __name__ == "__main__":
     import mujoco.viewer
     from pathlib import Path
 
-    from hurodes.mjcf_generator.unified_generator import UnifiedMJCFGenerator
+    from hurodes.generators.mjcf_generator.humanoid_generator import HumanoidMJCFGenerator
     from hurodes import ROBOTS_PATH
 
 
     generator = MJCFGeneratorComposite({
-        "robot1": UnifiedMJCFGenerator(Path(ROBOTS_PATH, "kuavo_s45")),
-        "robot2": UnifiedMJCFGenerator(Path(ROBOTS_PATH, "unitree_g1")),
+        "robot1": HumanoidMJCFGenerator(Path(ROBOTS_PATH, "kuavo_s45")),
+        "robot2": HumanoidMJCFGenerator(Path(ROBOTS_PATH, "unitree_g1")),
     })
     generator.build()
 

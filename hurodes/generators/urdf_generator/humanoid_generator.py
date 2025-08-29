@@ -1,13 +1,13 @@
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-from hurodes.urdf_generator.generator_base import URDFGeneratorBase
+from hurodes.generators.urdf_generator.urdf_generator_base import URDFGeneratorBase
 from hurodes.hrdf.hrdf import HumanoidRobot
 
 def get_prefix_name(prefix, name):
     return f"{prefix}_{name}" if prefix else name
 
-class UnifiedURDFGenerator(URDFGeneratorBase):
+class HumanoidURDFGenerator(URDFGeneratorBase):
     def __init__(
             self,
             hrdf_path,

@@ -41,9 +41,8 @@ class ActuatorInfo(InfoBase):
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
-        mujoco_dict["joint"] = mujoco_dict.pop("joint_name")  
-        mujoco_dict["ctrlrange"] = f"-{mujoco_dict['peak_torque']} {mujoco_dict['peak_torque']}"
-        del mujoco_dict["peak_torque"]
+        mujoco_dict["ctrlrange"] = f"-{extra_dict['peak_torque']} {extra_dict['peak_torque']}"
+        mujoco_dict["joint"] = extra_dict["joint_name"]
         return mujoco_dict
 
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):

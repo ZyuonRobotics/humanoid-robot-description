@@ -27,12 +27,14 @@ class Restitution(AttributeBase):
 class ConType(AttributeBase):
     """Contact type attribute for Geom"""
     name: str = "contype"
+    dtype: str = "int"
     mujoco_name: str = "contype"
 
 @dataclass
 class ConAffinity(AttributeBase):
     """Contact affinity attribute for Geom"""
     name: str = "conaffinity"
+    dtype: str = "int"
     mujoco_name: str = "conaffinity"
 
 @dataclass
@@ -97,14 +99,8 @@ class SimpleGeomInfo(InfoBase):
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
-        del mujoco_dict["body_name"]
-        del mujoco_dict["restitution"]
-
-        if mujoco_dict["static_friction"] is not None:
-            mujoco_dict["friction"] = f"{mujoco_dict['static_friction']} 0.005 0.0001"
-        del mujoco_dict['static_friction']
-        del mujoco_dict['dynamic_friction']
-
+        friction = extra_dict.get("dynamic_friction", extra_dict.get("static_friction", 1.))
+        mujoco_dict["friction"] = f"{friction} 0.005 0.0001"
         return mujoco_dict
 
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
