@@ -11,23 +11,11 @@ import numpy as np
 import pandas as pd
 
 from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
-from hurodes.hrdf.base.info import InfoBase, load_csv
+from hurodes.hrdf.base.info import InfoBase, load_csv, find_info_by_attr
 from hurodes.hrdf import INFO_DICT
 
 def get_prefix_name(prefix, name):
     return f"{prefix}_{name}" if prefix else name
-
-
-def find_info_by_attr(attr_name, attr_value, info_list, return_one=False):
-    res = []
-    for info in info_list:
-        if info[attr_name].data == attr_value:
-            res.append(info)
-    if return_one:
-        assert len(res) == 1, f"Found multiple info with attr {attr_name} = {attr_value}"
-        return res[0]
-    else:
-        return res
 
 class UnifiedMJCFGenerator(MJCFGeneratorBase):
     def __init__(

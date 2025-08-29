@@ -1,8 +1,11 @@
-from hurodes.hrdf.base.attribute import Position, Quaternion, Name, BodyName
-from hurodes.hrdf.simple_geom import ConType, ConAffinity, RGBA, StaticFriction, DynamicFriction, Restitution
-from hurodes.hrdf.base.info import InfoBase
+import xml.etree.ElementTree as ET
 
-class MeshInfo(InfoBase):
+from hurodes.hrdf.base.attribute import Position, Quaternion, Name, BodyName
+from hurodes.hrdf.simple_geom import SimpleGeomInfo, ConType, ConAffinity, RGBA, StaticFriction, DynamicFriction, Restitution
+from hurodes.hrdf.base.info import InfoBase, add_attr_to_elem
+from hurodes.utils.convert import str_quat2rpy
+
+class MeshInfo(SimpleGeomInfo):
     info_name = "MeshInfo"
     attr_classes = (
         # contact attributes
@@ -21,7 +24,7 @@ class MeshInfo(InfoBase):
     )
 
     @classmethod
-    def specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name.replace("-", "_")
         info_dict["name"] = part_spec.meshname.replace("-", "_")
 
@@ -34,7 +37,7 @@ class MeshInfo(InfoBase):
         info_dict["restitution"] = None
         return info_dict
 
-    def specific_generate_mujoco(self, mujoco_dict, tag=None):
+    def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
         del mujoco_dict["body_name"]
         del mujoco_dict["restitution"]
         mujoco_dict["mesh"] = mujoco_dict.pop("name")
@@ -45,3 +48,8 @@ class MeshInfo(InfoBase):
         del mujoco_dict['static_friction']
         del mujoco_dict['dynamic_friction']
         return mujoco_dict
+
+    def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
+        urdf_dict[("origin", "rpy")] = str_quat2rpy(extra_dict["quat"])
+        urdf_dict[("geometry", "mesh", "filename")] = extra_dict["name"] + ".stl"
+        return urdf_dict

@@ -2,6 +2,7 @@ from typing import List, Type, Dict, Any, ClassVar, Optional, Union
 import numpy as np
 import pandas as pd
 import re
+import xml.etree.ElementTree as ET
 
 from bidict import bidict
 
@@ -50,64 +51,44 @@ class InfoBase:
         This function is used to parse the information from the mujoco model and spec.
         """
         info_dict = {}
-        info_dict = cls.specific_parse_mujoco(info_dict, part_model, part_spec, whole_model, whole_spec)
-
         for attr_class in cls.attr_classes:
-            if attr_class.mujoco_name is None:
-                info_dict[attr_class.name] = None
-            elif attr_class.name not in info_dict:
+            if attr_class.mujoco_name is not None:
                 info_dict[attr_class.name] = getattr(part_model, attr_class.mujoco_name)
+        info_dict = cls._specific_parse_mujoco(info_dict, part_model, part_spec, whole_model, whole_spec)
         return cls.from_dict(info_dict)
 
     @classmethod
-    def specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         return info_dict
 
     def to_mujoco_dict(self, tag=None):
-        mujoco_dict = {}
+        mujoco_dict, extra_dict = {}, {}
         for attr_class in self.attr_classes:
+            extra_dict[attr_class.name] = self[attr_class.name].to_string()
             if attr_class.mujoco_name is not None:
-                mujoco_dict[attr_class.mujoco_name] = self[attr_class.name].to_string()
-        mujoco_dict = self.specific_generate_mujoco(mujoco_dict, tag)
-
-        mujoco_dict = {k: v for k, v in mujoco_dict.items() if v != "nan"}
+                mujoco_dict[attr_class.mujoco_name] = self[attr_class.name].to_string()                
+        mujoco_dict = self._specific_generate_mujoco(mujoco_dict, extra_dict, tag)
         return mujoco_dict
 
-    def specific_generate_mujoco(self, mujoco_dict, tag=None):
+    def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag=None):
         return mujoco_dict
 
-    def to_urdf_dict(self, tag=None):
-        """
-        Convert Info object to URDF dictionary format.
-        
-        Args:
-            tag: URDF tag type to generate attributes for (e.g., 'link', 'joint', 'limit', etc.)
-            
-        Returns:
-            Dictionary with URDF-specific attribute names and values
-        """
-        urdf_dict = {}
+    def _to_urdf_dict(self, tag=None):
+        urdf_dict, extra_dict = {}, {}
         for attr_class in self.attr_classes:
-            # Use attribute name as URDF name by default (can be overridden by urdf_name)
-            urdf_name = getattr(attr_class, 'urdf_name', attr_class.name)
-            urdf_dict[urdf_name] = self[attr_class.name].to_string()
-        urdf_dict = self.specific_generate_urdf(urdf_dict, tag)
+            extra_dict[attr_class.name] = self[attr_class.name].to_string()
+            if attr_class.urdf_path is not None:
+                urdf_dict[attr_class.urdf_path] = self[attr_class.name].to_string()                
+        urdf_dict = self._specific_generate_urdf(urdf_dict, extra_dict, tag)
+        return urdf_dict, extra_dict
 
-        urdf_dict = {k: v for k, v in urdf_dict.items() if v != "nan"}
+    def _specific_generate_urdf(self, urdf_dict, extra_dict, tag=None):
         return urdf_dict
 
-    def specific_generate_urdf(self, urdf_dict, tag=None):
-        """
-        Override this method in subclasses to provide URDF-specific transformations.
-        
-        Args:
-            urdf_dict: Dictionary with raw attribute values
-            tag: URDF tag type being generated
-            
-        Returns:
-            Transformed dictionary for the specific URDF tag
-        """
-        return urdf_dict
+    def to_urdf_elem(self, root_elem, tag=None):
+        urdf_dict, extra_dict = self._to_urdf_dict(tag)
+        for attr_path, attr_value in urdf_dict.items():
+            add_attr_to_elem(root_elem, attr_path, attr_value)
 
     def __repr__(self):
         string = f"{self.info_name}(\n"
@@ -133,3 +114,33 @@ def load_csv(csv_path: str, info_class: type) -> List[InfoBase]:
     df_list = df.to_dict('records')
     
     return [info_class.from_flat_dict(data_dict) for data_dict in df_list]
+
+def find_info_by_attr(attr_name, attr_value, info_list, return_one=False):
+    res = []
+    for info in info_list:
+        if info[attr_name].data == attr_value:
+            res.append(info)
+    if return_one:
+        assert len(res) == 1, f"Found multiple info with attr {attr_name} = {attr_value}"
+        return res[0]
+    else:
+        return res
+
+def add_attr_to_elem(elem, attr_path, attr_value):
+    if len(attr_path) == 1:
+        if isinstance(attr_path[0], str):
+            elem.set(attr_path[0], str(attr_value))
+        elif isinstance(attr_path[0], tuple):
+            values = attr_value.split()
+            assert len(values) == len(attr_path[0]), f"Expected {len(attr_path[0])} values for {attr_path[0]}, got {len(values)}"
+            for i, value in enumerate(values):
+                elem.set(attr_path[0][i], value)
+    else:
+        sub_elem_list = elem.findall(attr_path[0])
+        if len(sub_elem_list) == 0:
+            sub_elem = ET.SubElement(elem, attr_path[0])
+        elif len(sub_elem_list) == 1:
+            sub_elem = sub_elem_list[0]
+        else:
+            raise ValueError(f"Found multiple elements with tag {attr_path[0]}")
+        add_attr_to_elem(sub_elem, attr_path[1:], attr_value)

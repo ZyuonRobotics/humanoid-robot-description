@@ -73,10 +73,11 @@ class GeneratorBase(ABC):
             The formatted XML string for the specific format
         """
         assert self._xml_root is not None, "XML root is not set"
+        xml_str = '<?xml version="1.0" encoding="utf-8"?>\n'
         tree = ET.ElementTree(self.xml_root)
         ET.indent(tree, space="  ", level=0)
-        xml_content = ET.tostring(self.xml_root, encoding='unicode', method='xml')
-        return xml_content
+        xml_str += ET.tostring(self.xml_root, encoding='unicode', method='xml')
+        return xml_str
     
     @abstractmethod
     def load(self):

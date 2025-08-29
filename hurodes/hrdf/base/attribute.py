@@ -20,17 +20,15 @@ class AttributeBase:
     Attributes:
         name: Name of the attribute.
         dtype: Data type of the attribute.
-        is_array: Whether the attribute is an array.
         dim: Dimension of the attribute.
-        mujoco_name: Name of the attribute in Mujoco, if empty string, use name as default. If None, do not generate mujoco attribute.
-        urdf_path: Path to the attribute in URDF, if empty tuple, use name as default. If None, do not generate urdf attribute.
+        mujoco_name: Name of the attribute in Mujoco, if None, do not generate mujoco attribute.
+        urdf_path: Path to the attribute in URDF, if None, do not generate urdf attribute.
     """
-    name: str = field(default="")
-    dtype: Union[Type, str] = field(default=float)
-    is_array: bool = field(default=False)
-    dim: int = field(default=0)
-    mujoco_name: str = field(default="")
-    urdf_path: tuple = field(default=())
+    name: str = ""
+    dtype: Union[Type, str] = float
+    dim: int = 0
+    mujoco_name: str = None
+    urdf_path: tuple = None
 
     def __init_subclass__(cls):
         if isinstance(cls.dtype, str):
@@ -38,17 +36,9 @@ class AttributeBase:
             cls.dtype = TYPE_MAP[cls.dtype]
         else:
             assert cls.dtype in TYPE_MAP.values(), f"Invalid data type: {cls.dtype}"
-
-        if cls.is_array:
-            assert cls.dim > 1, "Array must have dimension > 1"
-        else:
-            assert cls.dim == 0
-            
-        if cls.mujoco_name == "":
-            cls.mujoco_name = cls.name
-        if cls.urdf_path == ():
-            cls.urdf_path = (cls.name,)
-
+        
+        assert cls.dim >= 0, "Dimension must be non-negative"
+    
     def __post_init__(self):
         self._data = None
 
@@ -60,7 +50,7 @@ class AttributeBase:
     def data(self, data: Optional[Union[int, str, float, bool, np.ndarray, list]]):
         if data is None:
             pass
-        elif not self.is_array:
+        elif self.dim == 0:
             data = self.dtype(data)
         else:
             if isinstance(data, list):
@@ -88,8 +78,7 @@ class AttributeBase:
         Parse flat dictionary to attribute data. This function assumes that the value must be in the flat_dict.
         """
         assert flat_dict is not None and isinstance(flat_dict, dict), "flat_dict must be a dictionary"
-        
-        if not self.is_array:
+        if self.dim == 0:
             assert self.name in flat_dict, f"Attribute {self.name} not found in flat_dict"
             self.data = flat_dict[self.name]
         else:
@@ -111,7 +100,7 @@ class AttributeBase:
 
     
     def to_dict(self) -> Dict[str, Any]:
-        if self.is_array:
+        if self.dim > 0:
             if self.data is None:
                 return {f"{self.name}{i}": None for i in range(self.dim)}
             else:
@@ -120,7 +109,7 @@ class AttributeBase:
             return {self.name: self.data}
 
     def to_string(self):
-        if not self.is_array:
+        if self.dim == 0:
             return str(self.data)
         else:
             return " ".join([str(data) for data in self.data])
@@ -128,79 +117,44 @@ class AttributeBase:
     def __repr__(self):
         return f"{self.name}: {self.dtype}[{self.dim}]"
 
-
-@dataclass
-class SingleFloat(AttributeBase):
-    dtype: Union[Type, str] = float
-    is_array: bool = False
-
-@dataclass
-class SingleInt(AttributeBase):
-    dtype: Union[Type, str] = int
-    is_array: bool = False
-
 @dataclass
 class Position(AttributeBase):
     name: str = "pos"
-    dtype: Union[Type, str] = float
-    is_array: bool = True
     dim: int = 3
+    mujoco_name: str = "pos"
     urdf_path: tuple = ("origin", "xyz")
 
 @dataclass
 class Quaternion(AttributeBase):
     name: str = "quat"
-    dtype: Union[Type, str] = float
-    is_array: bool = True
     dim: int = 4
-    urdf_path: tuple = ("origin", "rpy")
+    mujoco_name: str = "quat"
 
 @dataclass
 class Axis(AttributeBase):
     name: str = "axis"
-    dtype: Union[Type, str] = float
-    is_array: bool = True
     dim: int = 3
+    mujoco_name: str = "axis"
     urdf_path: tuple = ("axis", "xyz")
 
 @dataclass
 class Name(AttributeBase):
     name: str = "name"
     dtype: Union[Type, str] = str
-    is_array: bool = False
+    mujoco_name: str = "name"
     urdf_path: tuple = ("name",)
 
 @dataclass
 class BodyName(AttributeBase):
     name: str = "body_name"
     dtype: Union[Type, str] = str
-    is_array: bool = False
 
 @dataclass
 class JointName(AttributeBase):
     name: str = "joint_name"
     dtype: Union[Type, str] = str
-    is_array: bool = False
 
 @dataclass
-class Id(SingleInt):
+class Id(AttributeBase):
     name: str = "id"
     dtype: Union[Type, str] = int
-    is_array: bool = False
-    urdf_path: tuple = ("name",)
-
-@dataclass
-class Inertia(AttributeBase):
-    name: str = "inertia"
-    dtype: Union[Type, str] = float
-    is_array: bool = True
-    dim: int = 3
-    urdf_path: tuple = ("inertial", "inertia", ("ixx", "iyy", "izz"))
-
-@dataclass
-class Range(AttributeBase):
-    name: str = "range"
-    dtype: Union[Type, str] = float
-    is_array: bool = True
-    dim: int = 2
-    urdf_path: tuple = ("limit", ("lower", "upper"))

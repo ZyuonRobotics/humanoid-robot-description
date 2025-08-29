@@ -29,7 +29,7 @@ class URDFGeneratorBase(GeneratorBase):
         if self._xml_root is None:
             self._xml_root = ET.Element('robot', name=self.robot_name)
         return self._xml_root
-
+    
     @property
     def urdf_str(self) -> str:
         return self.format_str

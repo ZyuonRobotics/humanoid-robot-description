@@ -1,66 +1,57 @@
 from dataclasses import dataclass
-from re import A
-from typing import Union, Type
 
-from numpy import size
+import xml.etree.ElementTree as ET
 import mujoco
 
-from hurodes.hrdf.base.attribute import Position, Quaternion, Name, BodyName, AttributeBase, SingleFloat, SingleInt
-from hurodes.hrdf.base.info import InfoBase
+from hurodes.hrdf.base.attribute import Position, Quaternion, Name, BodyName, AttributeBase
+from hurodes.hrdf.base.info import InfoBase, add_attr_to_elem
+from hurodes.utils.convert import str_quat2rpy
 
 
 @dataclass
-class StaticFriction(SingleFloat):
+class StaticFriction(AttributeBase):
     """Static friction attribute for Geom"""
     name: str = "static_friction"
-    urdf_path: tuple = ("contact_coefficients", "mu")
 
 @dataclass
-class DynamicFriction(SingleFloat):
+class DynamicFriction(AttributeBase):
     """Dynamic friction attribute for Geom"""
     name: str = "dynamic_friction"
-    urdf_path: tuple = ("contact_coefficients", "mu2")
 
 @dataclass
-class Restitution(SingleFloat):
+class Restitution(AttributeBase):
     """Restitution attribute for Geom"""
     name: str = "restitution"
-    urdf_path: tuple = ("contact_coefficients", "restitution")
 
 @dataclass
-class ConType(SingleInt):
+class ConType(AttributeBase):
     """Contact type attribute for Geom"""
     name: str = "contype"
-    urdf_path: tuple = ("contact_coefficients", "contype")
+    mujoco_name: str = "contype"
 
 @dataclass
-class ConAffinity(SingleInt):
+class ConAffinity(AttributeBase):
     """Contact affinity attribute for Geom"""
     name: str = "conaffinity"
-    urdf_path: tuple = ("contact_coefficients", "conaffinity")
+    mujoco_name: str = "conaffinity"
 
 @dataclass
 class GeomType(AttributeBase):
     name: str = "type"
-    urdf_path: tuple = ("geometry", "type")
-    is_array: bool = False
-    dtype: Union[Type, str] = str
+    mujoco_name: str = "type"
 
 @dataclass
 class Size(AttributeBase):
     name: str = "size"
-    dtype: Union[Type, str] = float
-    is_array: bool = True
     dim: int = 3
-    urdf_path: tuple = ("geometry", "box", "size")
+    mujoco_name: str = "size"
 
 @dataclass
 class RGBA(AttributeBase):
     """RGBA color attribute for Geom"""
     name: str = "rgba"
-    dtype: Union[Type, str] = float
-    is_array: bool = True
     dim: int = 4
+    mujoco_name: str = "rgba"
     urdf_path: tuple = ("material", "color", "rgba")
 
 
@@ -94,7 +85,7 @@ class SimpleGeomInfo(InfoBase):
     )
 
     @classmethod
-    def specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name.replace("-", "_")
         info_dict["name"] = part_spec.name.replace("-", "_")
         info_dict["static_friction"] = part_model.friction[0]
@@ -105,7 +96,7 @@ class SimpleGeomInfo(InfoBase):
         info_dict["type"] = GEOM_ID2NAME[int(part_model.type)]
         return info_dict
 
-    def specific_generate_mujoco(self, mujoco_dict, tag=None):
+    def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
         del mujoco_dict["body_name"]
         del mujoco_dict["restitution"]
 
@@ -115,3 +106,24 @@ class SimpleGeomInfo(InfoBase):
         del mujoco_dict['dynamic_friction']
 
         return mujoco_dict
+
+    def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
+        urdf_dict[("origin", "rpy")] = str_quat2rpy(extra_dict["quat"])
+        import pdb
+        pdb.set_trace()
+        return urdf_dict
+    
+
+    def to_urdf_elem(self, root_elem, tag=None):
+        urdf_dict, extra_dict = self._to_urdf_dict(tag)
+
+        if float(extra_dict["contype"]) == float(extra_dict["conaffinity"]) == 0.0:
+            sub_elem = ET.SubElement(root_elem, "visual")
+        elif float(extra_dict["contype"]) == float(extra_dict["conaffinity"]) == 1.0:
+            sub_elem = ET.SubElement(root_elem, "collision")
+        else:
+            raise ValueError(f"Invalid contype and conaffinity: {extra_dict['contype']}, {extra_dict['conaffinity']}")
+
+        for attr_path, attr_value in urdf_dict.items():
+            add_attr_to_elem(sub_elem, attr_path, attr_value)
+        return sub_elem
