@@ -115,17 +115,6 @@ def load_csv(csv_path: str, info_class: type) -> List[InfoBase]:
     
     return [info_class.from_flat_dict(data_dict) for data_dict in df_list]
 
-def find_info_by_attr(attr_name, attr_value, info_list, return_one=False):
-    res = []
-    for info in info_list:
-        if info[attr_name].data == attr_value:
-            res.append(info)
-    if return_one:
-        assert len(res) == 1, f"Found multiple info with attr {attr_name} = {attr_value}"
-        return res[0]
-    else:
-        return res
-
 def add_attr_to_elem(elem, attr_path, attr_value):
     if len(attr_path) == 1:
         if isinstance(attr_path[0], str):
