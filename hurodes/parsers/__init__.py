@@ -1,4 +1,4 @@
-from .mjcf_parser import UnifiedMJCFParser
-from .urdf_parser import UnifiedURDFParser
+from hurodes.parsers.mjcf_parser import HumanoidMJCFParser
+from hurodes.parsers.urdf_parser import HumanoidURDFParser
 
-__all__ = ["UnifiedMJCFParser", "UnifiedURDFParser"]
+__all__ = ["HumanoidMJCFParser", "HumanoidURDFParser"]

@@ -1,143 +1,95 @@
-import json
-from collections import defaultdict
-from multiprocessing.context import assert_spawning
 from pathlib import Path
 from abc import ABC
 
 import pandas as pd
 import mujoco
 
-from hurodes.hrdf import ActuatorInfo, BodyInfo, SimpleGeomInfo, JointInfo, MeshInfo
-from hurodes.utils.mesh import simplify_obj
-from hurodes.hrdf.base.info import save_csv
+from hurodes.hrdf.infos import ActuatorInfo, BodyInfo, SimpleGeomInfo, JointInfo, MeshInfo
+from hurodes.hrdf.hrdf import HumanoidRobot
 
 PLANE_TYPE = int(mujoco.mjtGeom.mjGEOM_PLANE)
 MESH_TYPE = int(mujoco.mjtGeom.mjGEOM_MESH)
 
-def collect_body_info(model, spec):
-    body_name2idx = {}
-    body_info_list = []
-    
-    assert model.body(0).name == "world", "First body should be world."
-    for body_idx in range(1, model.nbody):
-        body = model.body(body_idx)
-        body_info = BodyInfo.from_mujoco(body, spec.bodies[body_idx], model, spec)
-        body_name2idx[body.name] = body_idx - 1
-        body_info_list.append(body_info)
-    return body_name2idx, body_info_list
-
-def collect_joint_info(model, spec):
-    joint_info_list = []
-
-    assert model.joint(0).type[0] == 0, "First joint should be free."
-    for jnt_idx in range(1, model.njnt):
-        joint_info = JointInfo.from_mujoco(model.joint(jnt_idx), spec.joints[jnt_idx], model, spec)
-        joint_info_list.append(joint_info)
-    return joint_info_list
-
-def collect_actuator_info(model, spec):
-    actuator_info_list = []
-    for actuator_idx in range(model.nu):
-        actuator_info = ActuatorInfo.from_mujoco(model.actuator(actuator_idx), spec.actuators[actuator_idx], model, spec)
-        actuator_info_list.append(actuator_info)
-    return actuator_info_list
-
-def collect_geom_info(model, spec):
-    mesh_info_list, simple_geom_info_list = [], []
-    ground_dict = None
-    for geom_idx in range(model.ngeom):
-        geom_model, geom_spec = model.geom(geom_idx), spec.geoms[geom_idx]
-        if int(geom_model.type) == MESH_TYPE:
-            mesh_info = MeshInfo.from_mujoco(geom_model, geom_spec, model, spec)
-            mesh_info_list.append(mesh_info)
-        elif int(geom_model.type) == PLANE_TYPE:
-            assert geom_model.bodyid == 0, "Plane should be in worldbody."
-            assert ground_dict is None, "Only one plane is allowed."
-            ground_dict = {
-                "contype": str(geom_model.contype[0]),
-                "conaffinity": str(geom_model.conaffinity[0]),
-                "static_friction": str(geom_model.friction[0]),
-                "dynamic_friction": str(geom_model.friction[0]),
-            }
-        else:
-            geom_info = SimpleGeomInfo.from_mujoco(geom_model, geom_spec, model, spec)
-            simple_geom_info_list.append(geom_info)
-    return mesh_info_list, simple_geom_info_list, ground_dict
-
-def get_mesh_dict(spec, file_path):
-    mesh_path = {}
-    mesh_file_types = []
-
-    meshdir = Path(spec.meshdir)
-    if not meshdir.is_absolute():
-        meshdir = (Path(file_path).parent / meshdir).resolve()
-    assert meshdir.exists(), f"Mesh directory {meshdir} does not exist."
-
-    for mesh in spec.meshes:
-        mesh_path[mesh.name.replace("-", "_")] = meshdir /  mesh.file
-        mesh_file_types.append(mesh.file.split('.')[-1].lower())
-
-    assert len(set(mesh_file_types)) == 1, "All mesh files must have the same file type."
-    assert mesh_file_types[0] in ["obj", "stl"], "Mesh file type must be obj or stl."
-    return mesh_path, mesh_file_types[0]
-
 class BaseParser(ABC):
     def __init__(self, file_path):
         self.file_path = file_path
-        
-        self.body_info_list = None
-        self.joint_info_list = None
-        self.actuator_info_list = None
-        self.mesh_info_list = None
-        self.simple_geom_info_list = None
-
-        self.ground_dict = None
-        self.body_parent_id = None
+        self.humanoid_robot = HumanoidRobot()
 
         self.mesh_path = {}
-        self.mesh_file_type = None
-        self.body_name2idx = {}
-
 
     @property
     def mujoco_spec(self):
         raise NotImplementedError("Subclasses must implement this method")
 
+    def collect_body_info(self, model, spec):
+        assert model.body(0).name == "world", "First body should be world."
+        for body_idx in range(1, model.nbody):
+            body = model.body(body_idx)
+            body_info = BodyInfo.from_mujoco(body, spec.bodies[body_idx], model, spec)
+            self.humanoid_robot.info_list["body"].append(body_info)
+
+    def collect_joint_info(self, model, spec):
+        assert model.joint(0).type[0] == 0, "First joint should be free."
+        for jnt_idx in range(1, model.njnt):
+            joint_info = JointInfo.from_mujoco(model.joint(jnt_idx), spec.joints[jnt_idx], model, spec)
+            self.humanoid_robot.info_list["joint"].append(joint_info)
+
+    def collect_actuator_info(self, model, spec):
+        for actuator_idx in range(model.nu):
+            actuator_info = ActuatorInfo.from_mujoco(model.actuator(actuator_idx), spec.actuators[actuator_idx], model, spec)
+            self.humanoid_robot.info_list["actuator"].append(actuator_info)
+
+    def collect_geom_info(self, model, spec):
+        ground_dict = None
+        for geom_idx in range(model.ngeom):
+            geom_model, geom_spec = model.geom(geom_idx), spec.geoms[geom_idx]
+            if int(geom_model.type) == MESH_TYPE:
+                mesh_info = MeshInfo.from_mujoco(geom_model, geom_spec, model, spec)
+                self.humanoid_robot.info_list["mesh"].append(mesh_info)
+            elif int(geom_model.type) == PLANE_TYPE:
+                assert geom_model.bodyid == 0, "Plane should be in worldbody."
+                assert ground_dict is None, "Only one plane is allowed."
+                ground_dict = {
+                    "contype": str(geom_model.contype[0]),
+                    "conaffinity": str(geom_model.conaffinity[0]),
+                    "static_friction": str(geom_model.friction[0]),
+                    "dynamic_friction": str(geom_model.friction[0]),
+                }
+            else:
+                geom_info = SimpleGeomInfo.from_mujoco(geom_model, geom_spec, model, spec)
+                self.humanoid_robot.info_list["simple_geom"].append(geom_info)
+        self.humanoid_robot.ground_dict = ground_dict
+
+    def collect_mesh_path(self, spec):
+        mesh_file_types = []
+
+        meshdir = Path(spec.meshdir)
+        if not meshdir.is_absolute():
+            meshdir = (Path(self.file_path).parent / meshdir).resolve()
+        assert meshdir.exists(), f"Mesh directory {meshdir} does not exist."
+
+        for mesh in spec.meshes:
+            self.mesh_path[mesh.name.replace("-", "_")] = meshdir /  mesh.file
+            mesh_file_types.append(mesh.file.split('.')[-1].lower())
+
+        assert len(set(mesh_file_types)) == 1, "All mesh files must have the same file type."
+        assert mesh_file_types[0] in ["obj", "stl"], "Mesh file type must be obj or stl."
+        self.humanoid_robot.mesh_file_type = mesh_file_types[0]
+
     def parse(self, base_link_name="base_link"):
         spec = self.mujoco_spec
         model = spec.compile()
 
-        self.body_parent_id = (model.body_parentid[1:] - 1).tolist()
-
-        self.body_name2idx, self.body_info_list = collect_body_info(model, spec)
-        self.joint_info_list = collect_joint_info(model, spec)
-        self.actuator_info_list = collect_actuator_info(model, spec)
-        self.mesh_info_list, self.simple_geom_info_list, self.ground_dict = collect_geom_info(model, spec)
-
-        self.mesh_path, self.mesh_file_type = get_mesh_dict(spec, self.file_path)
+        self.humanoid_robot.body_parent_id = (model.body_parentid[1:] - 1).tolist()
+        self.collect_body_info(model, spec)
+        self.collect_joint_info(model, spec)
+        self.collect_actuator_info(model, spec)
+        self.collect_geom_info(model, spec)
+        self.collect_mesh_path(spec)
 
     def save(self, save_path, max_faces=8000):
-        save_path = Path(save_path)
-        save_path.mkdir(parents=True, exist_ok=True)
-        for name, path in self.mesh_path.items():
-            new_mesh_file = save_path / "meshes" / f"{name}.{self.mesh_file_type}"
-            new_mesh_file.parent.mkdir(parents=True, exist_ok=True)
-            simplify_obj(path, new_mesh_file, max_faces)
-        
-        meta_path = save_path / "meta.json"
-        meta_path.touch(exist_ok=True)
-        meta_info = {
-            "body_parent_id": self.body_parent_id,
-            "mesh_file_type": self.mesh_file_type,
-            "ground": self.ground_dict
-        }
-        with open(meta_path, "w") as json_file:
-            json.dump(meta_info, json_file, indent=4)
-        
-        for info_name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
-            info_list = getattr(self, f"{info_name}_info_list")
-            if len(info_list) > 0:
-                save_csv(info_list, save_path / f"{info_name}.csv")
+        """Save the parsed robot data using HumanoidRobot's save method."""
+        self.humanoid_robot.save(save_path, mesh_path=self.mesh_path, max_faces=max_faces)
 
     def print_body_tree(self, colorful=False):
         pass

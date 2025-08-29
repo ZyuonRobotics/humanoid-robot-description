@@ -2,11 +2,11 @@ import xml.etree.ElementTree as ET
 
 import mujoco
 
-from hurodes.format_parser.base_parser import BaseParser
+from hurodes.parsers.base_parser import BaseParser
 from hurodes.utils.printing import get_elem_tree_str
 
 
-class UnifiedMJCFParser(BaseParser):
+class HumanoidMJCFParser(BaseParser):
 
     def __init__(self, mjcf_path):
         super().__init__(mjcf_path)

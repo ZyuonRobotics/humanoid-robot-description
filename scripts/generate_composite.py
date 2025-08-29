@@ -4,7 +4,7 @@ import click
 import mujoco
 import mujoco.viewer
 
-from hurodes.generators.mjcf_generator.unified_generator import UnifiedMJCFGenerator
+from hurodes.generators.mjcf_generator.humanoid_generator import HumanoidMJCFGenerator
 from hurodes.generators.mjcf_generator.generator_composite import MJCFGeneratorComposite
 from hurodes import ROBOTS_PATH
 
@@ -20,7 +20,7 @@ def main(robot_names):
     if len(robot_names_list) < 2:
         raise click.UsageError("Please provide at least two robot names for composition.")
 
-    generators = [UnifiedMJCFGenerator(os.path.join(ROBOTS_PATH, name)) for name in robot_names_list]
+    generators = [HumanoidMJCFGenerator(os.path.join(ROBOTS_PATH, name)) for name in robot_names_list]
     generator = MJCFGeneratorComposite(generators)
     generator.build()
 

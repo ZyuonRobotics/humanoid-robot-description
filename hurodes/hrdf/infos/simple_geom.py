@@ -40,6 +40,7 @@ class ConAffinity(AttributeBase):
 @dataclass
 class GeomType(AttributeBase):
     name: str = "type"
+    dtype: str = "str"
     mujoco_name: str = "type"
 
 @dataclass
@@ -99,6 +100,9 @@ class SimpleGeomInfo(InfoBase):
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
+        if mujoco_dict["name"] == "nan":
+            del mujoco_dict["name"]
+
         friction = extra_dict.get("dynamic_friction", extra_dict.get("static_friction", 1.))
         mujoco_dict["friction"] = f"{friction} 0.005 0.0001"
         return mujoco_dict
