@@ -1,6 +1,6 @@
 import pytest
 import tempfile
-import json
+import yaml
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -13,14 +13,14 @@ class TestHumanoidMJCFGenerator:
     def temp_hrdf_dir(self):
         """Create a temporary HRDF directory structure for testing."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create meta.json
+            # Create meta.yaml
             meta_data = {
                 "body_parent_id": [-1, 0, 0],
                 "mesh_file_type": "obj",
                 "ground": {"name": "ground", "type": "plane"}
             }
-            with open(Path(temp_dir, "meta.json"), "w") as f:
-                json.dump(meta_data, f)
+            with open(Path(temp_dir, "meta.yaml"), "w", encoding='utf-8') as f:
+                yaml.dump(meta_data, f, default_flow_style=False, allow_unicode=True, indent=2)
             
             yield temp_dir
 

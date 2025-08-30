@@ -61,10 +61,10 @@ assets/robots/your_robot_name/
 ├── joint.csv        # Joint information
 ├── mesh.csv         # Mesh file index
 ├── meshes/          # Mesh resources
-└── meta.json        # Metadata (tree structure, ground parameters, etc.)
+└── meta.yaml        # Metadata (tree structure, ground parameters, etc.)
 ```
 
 - **Intermediate Bridge**: Serves as a unified data carrier during conversions between MJCF, URDF, and other formats.
-- **Structured Storage**: CSV/JSON files are easy for batch reading, analysis, and version control.
+- **Structured Storage**: CSV/YAML files are easy for batch reading, analysis, and version control.
 - **Extensible**: Clear directory structure makes it easy to add new attributes or support new formats.
 - **Project Cache**: Temporary data generated at runtime is stored in the user's home directory under `~/.hurodes`, with no manual maintenance required.

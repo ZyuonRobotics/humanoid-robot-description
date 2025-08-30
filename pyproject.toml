@@ -14,7 +14,8 @@ dependencies = [
     "tqdm>=4.67.1",
     "trimesh>=4.6.10",
     "fast-simplification>=0.1.11",
-    "bidict"
+    "bidict",
+    "PyYAML>=6.0"
 ]
 requires-python = ">=3.9"
 authors = [

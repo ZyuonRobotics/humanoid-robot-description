@@ -1,7 +1,6 @@
 # import os
 from pathlib import Path
 import xml.etree.ElementTree as ET
-import json
 import math
 from collections import defaultdict
 from copy import deepcopy
