@@ -4,8 +4,8 @@ import xml.etree.ElementTree as ET
 
 from fsspec.caching import P
 
-from hurodes.mjcf_generator.generator_composite import MJCFGeneratorComposite
-from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
+from hurodes.generators.mjcf_generator.generator_composite import MJCFGeneratorComposite
+from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
 
 class MockGenerator(MJCFGeneratorBase):
     def __init__(self, name, mesh_name=None, mesh_file=None, meshdir=None, **kwargs):

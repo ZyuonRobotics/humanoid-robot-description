@@ -27,7 +27,7 @@ class MJCFGeneratorBase(GeneratorBase):
         """
         super().__init__()
         self.disable_gravity = disable_gravity
-        self.time_step = timestep
+        self.timestep = timestep
 
     @property
     def xml_root(self) -> ET.Element:
@@ -36,8 +36,8 @@ class MJCFGeneratorBase(GeneratorBase):
             self._xml_root = ET.Element('mujoco')
             if self.disable_gravity:
                 ET.SubElement(self.get_elem("option"), 'flag', gravity="disable")
-            if self.time_step:
-                self.get_elem("option").set('timestep', str(self.time_step))
+            if self.timestep:
+                self.get_elem("option").set('timestep', str(self.timestep))
         return self._xml_root
 
     @property

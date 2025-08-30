@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-from hurodes.mjcf_generator.generator_base import MJCFGeneratorBase
+from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
 
 
 class MJCFGeneratorBaseStub(MJCFGeneratorBase):

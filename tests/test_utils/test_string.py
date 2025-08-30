@@ -1,4 +1,4 @@
-from hurodes.utils.printing import get_elem_tree_str
+from hurodes.utils.string import get_elem_tree_str, get_prefix_name
 import xml.etree.ElementTree as ET
 
 
@@ -21,3 +21,11 @@ def test_get_elem_tree_str_colorful():
     tree_str = get_elem_tree_str(root, elem_tag="body", colorful=True)
     assert "root" in tree_str
     assert "child" in tree_str 
+
+def test_get_prefix_name():
+    assert get_prefix_name("prefix", "name") == "prefix_name"
+    assert get_prefix_name("prefix", "") == ""
+    assert get_prefix_name(None, "name") == "name"
+    assert get_prefix_name(None, "") == ""
+    assert get_prefix_name("prefix", None) == None
+
