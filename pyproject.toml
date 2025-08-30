@@ -37,6 +37,11 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
+[project.scripts]
+hurodes-generate = "hurodes.scripts.generate:main"
+hurodes-generate-composite = "hurodes.scripts.generate_composite:main"
+hurodes-parse = "hurodes.scripts.parse:main"
+
 [project.urls]
 Homepage = "https://github.com/ZyuonRobotics/humanoid-robot-description"
 

@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import mujoco
 
 from hurodes.parsers.base_parser import BaseParser
-from hurodes.utils.printing import get_elem_tree_str
+from hurodes.utils.string import get_elem_tree_str
 
 
 class HumanoidMJCFParser(BaseParser):
