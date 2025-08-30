@@ -16,11 +16,23 @@ hurodes (Humanoid Robot Description) is a Python toolkit for describing, convert
 
 ## Installation
 
-This project is based on Python 3.8 and above.
+This project is based on Python 3.9 and above.
+
+### Option 1: Install from PyPI (Recommended)
+
+```bash
+# Install the latest stable version from PyPI
+pip install hurodes
+
+# Or install with development dependencies
+pip install hurodes[dev]
+```
+
+### Option 2: Install from Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/humanoid-robot-description.git
+git clone https://github.com/ZyuonRobotics/humanoid-robot-description.git
 cd humanoid-robot-description
 
 # Standard installation
@@ -38,13 +50,13 @@ The following examples demonstrate the main script usage for model conversion an
 
 ```bash
 # Parse URDF or MJCF to HRDF (choose format_type: 'urdf' or 'mjcf')
-python scripts/parse.py --input_path path/to/robot.urdf --robot_name your_robot_name --format_type urdf
+hurodes-parse --input_path path/to/robot.urdf --robot_name your_robot_name --format_type urdf
 
 # Generate MJCF from HRDF and visualize
-python scripts/generate.py --robot_name your_robot_name
+hurodes-generate --robot_name your_robot_name
 
 # Compose multiple robots (from HRDF) into a single MJCF and visualize
-python scripts/generate_composite.py --robot_names robot1,robot2
+hurodes-generate-composite --robot_names robot1,robot2
 ```
 
 ---
