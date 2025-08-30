@@ -22,7 +22,10 @@ def get_elem_tree_str(elem, indent=0, elem_tag="body", colorful=False):
     return res
 
 def get_prefix_name(prefix, name):
-    if name == "" or prefix is None:
+    if name == "" or name is None:
+        return name
+    elif prefix is None:
         return name
     else:
         return f"{prefix}_{name}"
+        

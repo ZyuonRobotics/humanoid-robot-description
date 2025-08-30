@@ -98,8 +98,8 @@ class InfoBase:
 
     def __repr__(self):
         string = f"{self.info_name}(\n"
-        for attr_class in self.attr_classes:
-            string += f"    {attr_class}\n"
+        for attr_name, attr_value in self._dict.items():
+            string += f"    {attr_name}: {attr_value}\n"
         string += ")"
         return string
 

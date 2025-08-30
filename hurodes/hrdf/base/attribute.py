@@ -60,18 +60,6 @@ class AttributeBase:
             assert data.shape == (self.dim,), f"Invalid data shape: {data.shape}, expected: {self.dim}"
             data = data.astype(self.dtype) if self.dtype != str else data
         self._data = data
-    
-    # def parse_string(self, string: str):
-    #     if not self.is_array:
-    #         data = self.type_convert(string)
-    #     else:
-    #         data = string.split()
-    #         assert len(data) == self.dim, f"Expected {self.dim} elements, but got {len(data)}"
-    #         data = [self.type_convert(elem) for elem in data]
-    #         if self.dtype != str:
-    #             data = np.array(data)
-
-    #     self._data = data
 
     def parse_flat_dict(self, flat_dict: Dict[str, Any]):
         """
@@ -116,9 +104,6 @@ class AttributeBase:
                 return str(self.data)
         else:
             return " ".join([str(data) for data in self.data])
-
-    def __repr__(self):
-        return f"{self.name}: {self.dtype}[{self.dim}]"
 
 @dataclass
 class Position(AttributeBase):
