@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from hurodes.generators.generator_base import GeneratorBase
-from hurodes.utils.printing import get_elem_tree_str
+from hurodes.utils.string import get_elem_tree_str
 
 
 class URDFGeneratorBase(GeneratorBase):

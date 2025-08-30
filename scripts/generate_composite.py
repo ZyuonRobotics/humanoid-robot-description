@@ -24,6 +24,8 @@ def main(robot_names):
     generator = MJCFGeneratorComposite(generators)
     generator.build()
 
+    generator.export("composite.xml")
+
     m = mujoco.MjModel.from_xml_string(generator.mjcf_str)  # type: ignore
     d = mujoco.MjData(m)  # type: ignore
     with mujoco.viewer.launch_passive(m, d) as viewer:

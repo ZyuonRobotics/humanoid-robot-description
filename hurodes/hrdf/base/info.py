@@ -6,7 +6,8 @@ import xml.etree.ElementTree as ET
 
 from bidict import bidict
 
-from hurodes.hrdf.base.attribute import AttributeBase
+from hurodes.hrdf.base.attribute import AttributeBase, Name
+from hurodes.utils.string import get_prefix_name
 
 class InfoBase:
     info_name: str = ""
@@ -61,12 +62,17 @@ class InfoBase:
     def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
         return info_dict
 
-    def to_mujoco_dict(self, tag=None):
+    def to_mujoco_dict(self, tag=None, prefix=None):
         mujoco_dict, extra_dict = {}, {}
         for attr_class in self.attr_classes:
-            extra_dict[attr_class.name] = self[attr_class.name].to_string()
+            attr_value = self[attr_class.name].to_string()
+            if issubclass(attr_class, Name):
+                attr_value = get_prefix_name(prefix, attr_value)
+
+            extra_dict[attr_class.name] = attr_value
             if attr_class.mujoco_name is not None:
-                mujoco_dict[attr_class.mujoco_name] = self[attr_class.name].to_string()                
+                mujoco_dict[attr_class.mujoco_name] = attr_value
+        
         mujoco_dict = self._specific_generate_mujoco(mujoco_dict, extra_dict, tag)
         return mujoco_dict
 

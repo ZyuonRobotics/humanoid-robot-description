@@ -22,7 +22,7 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
     def generate(self, prefix=None):
         self._prepare_generators(prefix)
         self._merge_generators_xml()
-        # After merging, update mesh file paths and meshdir
+        # post-processing
         self._unify_mesh_paths_and_meshdir()
     
     def destroy(self):
@@ -31,12 +31,10 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
         super().destroy()
 
     def _prepare_generators(self, prefix=None):
-        # Initialize and generate XML for all sub-generators
         for name, generator in self.generators.items():
             generator.generate(prefix=f"{prefix}_{name}" if prefix is not None else name)
 
     def _merge_generators_xml(self):
-        # Merge all sub-generator xml_roots into self.xml_root
         for generator in self.generators.values():
             for top_elem in generator.xml_root:
                 last_top_elem = self.get_elem(top_elem.tag)
@@ -75,26 +73,3 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
 
         # Set meshdir in compiler
         self.get_elem("compiler").set("meshdir", str(common_meshdir))
-
-
-if __name__ == "__main__":
-    import mujoco
-    import mujoco.viewer
-    from pathlib import Path
-
-    from hurodes.generators.mjcf_generator.humanoid_generator import HumanoidMJCFGenerator
-    from hurodes import ROBOTS_PATH
-
-
-    generator = MJCFGeneratorComposite({
-        "robot1": HumanoidMJCFGenerator(Path(ROBOTS_PATH, "kuavo_s45")),
-        "robot2": HumanoidMJCFGenerator(Path(ROBOTS_PATH, "unitree_g1")),
-    })
-    generator.build()
-
-    m = mujoco.MjModel.from_xml_string(generator.mjcf_str) # type: ignore
-    d = mujoco.MjData(m) # type: ignore
-    with mujoco.viewer.launch_passive(m, d) as viewer:
-        while viewer.is_running():
-            mujoco.mj_step(m, d) # type: ignore
-            viewer.sync()

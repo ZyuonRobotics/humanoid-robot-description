@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 
 from hurodes.generators.generator_base import GeneratorBase
 from hurodes.generators.mjcf_generator.constants import *
-from hurodes.utils.printing import get_elem_tree_str
+from hurodes.utils.string import get_elem_tree_str
 
 class MJCFGeneratorBase(GeneratorBase):
     """

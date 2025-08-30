@@ -110,7 +110,10 @@ class AttributeBase:
 
     def to_string(self):
         if self.dim == 0:
-            return str(self.data)
+            if self.dtype == str and str(self.data) == "nan":
+                return ""
+            else:
+                return str(self.data)
         else:
             return " ".join([str(data) for data in self.data])
 
@@ -145,14 +148,16 @@ class Name(AttributeBase):
     urdf_path: tuple = ("name",)
 
 @dataclass
-class BodyName(AttributeBase):
+class BodyName(Name):
     name: str = "body_name"
-    dtype: Union[Type, str] = str
+    mujoco_name: str = None
+    urdf_path: tuple = None
 
 @dataclass
-class JointName(AttributeBase):
+class JointName(Name):
     name: str = "joint_name"
-    dtype: Union[Type, str] = str
+    mujoco_name: str = None
+    urdf_path: tuple = None
 
 @dataclass
 class Id(AttributeBase):

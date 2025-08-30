@@ -12,9 +12,7 @@ import pandas as pd
 
 from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
 from hurodes.hrdf.hrdf import HumanoidRobot
-
-def get_prefix_name(prefix, name):
-    return f"{prefix}_{name}" if prefix else name
+from hurodes.utils.string import get_prefix_name
 
 class HumanoidMJCFGenerator(MJCFGeneratorBase):
     def __init__(
@@ -34,24 +32,24 @@ class HumanoidMJCFGenerator(MJCFGeneratorBase):
     def generate_single_body_xml(self, parent_body, body_idx, prefix=None):
         body_info = self.humanoid_robot.info_list["body"][body_idx]
         body_name = body_info["name"].data
-        body_elem = ET.SubElement(parent_body, 'body', attrib=body_info.to_mujoco_dict("body"))
-        inertial_elem = ET.SubElement(body_elem, 'inertial', attrib=body_info.to_mujoco_dict("inertial"))
+        body_elem = ET.SubElement(parent_body, 'body', attrib=body_info.to_mujoco_dict("body", prefix=prefix))
+        inertial_elem = ET.SubElement(body_elem, 'inertial', attrib=body_info.to_mujoco_dict("inertial", prefix=prefix))
 
         if parent_body.tag == "worldbody":
             joint_elem = ET.SubElement(body_elem, 'freejoint')
         else:
             joint_info = self.humanoid_robot.find_info_by_attr("body_name", body_name, "joint", single=True)
-            joint_elem = ET.SubElement(body_elem, 'joint', attrib=joint_info.to_mujoco_dict())
+            joint_elem = ET.SubElement(body_elem, 'joint', attrib=joint_info.to_mujoco_dict(prefix=prefix))
 
         mesh_info_list = self.humanoid_robot.find_info_by_attr("body_name", body_name, "mesh")
         if mesh_info_list:
             for mesh_info in mesh_info_list:
-                mesh_elem = ET.SubElement(body_elem, 'geom', attrib=mesh_info.to_mujoco_dict())
+                mesh_elem = ET.SubElement(body_elem, 'geom', attrib=mesh_info.to_mujoco_dict(prefix=prefix))
 
         simple_geom_info_list = self.humanoid_robot.find_info_by_attr("body_name", body_name, "simple_geom")
         if simple_geom_info_list:
             for simple_geom_info in simple_geom_info_list:
-                simple_geom_elem = ET.SubElement(body_elem, 'geom', attrib=simple_geom_info.to_mujoco_dict())
+                simple_geom_elem = ET.SubElement(body_elem, 'geom', attrib=simple_geom_info.to_mujoco_dict(prefix=prefix))
         return body_elem
 
     def recursive_generate_body(self, parent=None, current_index=-1, prefix=None):
@@ -69,11 +67,6 @@ class HumanoidMJCFGenerator(MJCFGeneratorBase):
             "autolimits": "true",
             "meshdir": str(Path(self.hrdf_path, "meshes"))
         }
-    
-    def add_default(self):
-        default_elem = self.get_elem("default")
-        ET.SubElement(default_elem, "joint", attrib={"limited": "true"})
-        ET.SubElement(default_elem, "motor", attrib={"ctrllimited": "true"})
 
     def add_mesh(self, prefix=None):
         asset_elem = self.get_elem("asset")
@@ -95,12 +88,12 @@ class HumanoidMJCFGenerator(MJCFGeneratorBase):
         actuator_elem = ET.SubElement(self.xml_root, 'actuator')
         
         for joint_info in self.humanoid_robot.info_list["joint"]:
+            # keep the order of joint
             actuator_info = self.humanoid_robot.find_info_by_attr("joint_name", joint_info["name"].data, "actuator", single=True)
-            motor_elem = ET.SubElement(actuator_elem, 'motor', attrib=actuator_info.to_mujoco_dict())
+            motor_elem = ET.SubElement(actuator_elem, 'motor', attrib=actuator_info.to_mujoco_dict(prefix=prefix))
 
     def generate(self, prefix=None):
         self.add_compiler()
-        self.add_default()
         self.add_mesh(prefix=prefix)
         self.recursive_generate_body(prefix=prefix)
         self.add_actuator(prefix=prefix)

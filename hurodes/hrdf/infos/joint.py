@@ -59,6 +59,7 @@ class JointInfo(InfoBase):
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
         mujoco_dict["type"] = "hinge"
+        mujoco_dict["limited"] = "true"
         return mujoco_dict
 
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
