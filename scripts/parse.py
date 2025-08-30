@@ -1,5 +1,5 @@
-import os
 import click
+from pathlib import Path
 
 from hurodes.parsers import HumanoidMJCFParser, HumanoidURDFParser
 from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
@@ -20,7 +20,7 @@ def main(input_path, robot_name, format_type, base_link_name):
     else:
         raise ValueError(f"Invalid format type: {format_type}")
 
-    save_path = os.path.join(ROBOTS_PATH, robot_name)
+    save_path = Path(ROBOTS_PATH) / robot_name
 
     parser.print_body_tree()
     parser.parse(base_link_name)

@@ -2,7 +2,6 @@ import pytest
 import xml.etree.ElementTree as ET
 import tempfile
 import json
-import os
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 

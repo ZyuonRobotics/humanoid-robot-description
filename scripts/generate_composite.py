@@ -1,5 +1,5 @@
-import os
 import click
+from pathlib import Path
 
 import mujoco
 import mujoco.viewer
@@ -20,7 +20,7 @@ def main(robot_names):
     if len(robot_names_list) < 2:
         raise click.UsageError("Please provide at least two robot names for composition.")
 
-    generators = [HumanoidMJCFGenerator(os.path.join(ROBOTS_PATH, name)) for name in robot_names_list]
+    generators = [HumanoidMJCFGenerator(Path(ROBOTS_PATH) / name) for name in robot_names_list]
     generator = MJCFGeneratorComposite(generators)
     generator.build()
 

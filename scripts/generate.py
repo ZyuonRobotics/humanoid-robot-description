@@ -1,5 +1,5 @@
-import os
 import click
+from pathlib import Path
 
 import mujoco
 import mujoco.viewer
@@ -12,7 +12,7 @@ from hurodes import MJCF_ROBOTS_PATH, ROBOTS_PATH
 @click.option("--robot-name", prompt='Robot name', type=str, help="Robot name")
 @click.option("--format-type", prompt='Format type', type=str, help="Format type", default="mjcf")
 def main(robot_name, format_type):
-    hrdf_path = os.path.join(ROBOTS_PATH, robot_name)
+    hrdf_path = Path(ROBOTS_PATH) / robot_name
 
     if format_type == "mjcf":
         generator = HumanoidMJCFGenerator(hrdf_path)
@@ -23,13 +23,13 @@ def main(robot_name, format_type):
     else:
         raise ValueError(f"Invalid format type: {format_type}")
 
-    xml_string = generator.export(os.path.join(hrdf_path, output_filename))
+    xml_string = generator.export(hrdf_path / output_filename)
 
     if format_type == "mjcf":
         # Only apply mesh directory replacement for MJCF
         xml_string = xml_string.replace(
             'meshdir="meshes"', 
-            f'meshdir="{os.path.join(ROBOTS_PATH, robot_name, "meshes")}"'
+            f'meshdir="{Path(ROBOTS_PATH) / robot_name / "meshes"}"'
         )
 
         # Launch MuJoCo viewer for MJCF format
@@ -40,7 +40,7 @@ def main(robot_name, format_type):
                 mujoco.mj_step(m, d) # type: ignore
                 viewer.sync()
     elif format_type == "urdf":
-        print(f"URDF generated successfully: {os.path.join(hrdf_path, output_filename)}")
+        print(f"URDF generated successfully: {hrdf_path / output_filename}")
         print("Note: URDF format does not support MuJoCo viewer. Use RViz or other URDF-compatible viewers.")
 
 if __name__ == "__main__":
