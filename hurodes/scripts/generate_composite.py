@@ -4,13 +4,13 @@ from pathlib import Path
 import mujoco
 import mujoco.viewer
 
-from hurodes.generators.mjcf_generator.humanoid_generator import HumanoidMJCFGenerator
-from hurodes.generators.mjcf_generator.generator_composite import MJCFGeneratorComposite
+from hurodes.generators.mjcf_generator.mjcf_humanoid_generator import MJCFHumanoidGenerator
+from hurodes.generators.mjcf_generator.mjcf_generator_composite import MJCFGeneratorComposite
 from hurodes import ROBOTS_PATH
 
 @click.command()
 @click.option(
-    "--robot-names",
+    "robot-names",
     prompt="Robot names (comma-separated)",
     type=str,
     help="Robot names (comma-separated)"
@@ -20,7 +20,7 @@ def main(robot_names):
     if len(robot_names_list) < 2:
         raise click.UsageError("Please provide at least two robot names for composition.")
 
-    generators = [HumanoidMJCFGenerator(Path(ROBOTS_PATH) / name) for name in robot_names_list]
+    generators = [MJCFHumanoidGenerator.from_hrdf_path(Path(ROBOTS_PATH) / name) for name in robot_names_list]
     generator = MJCFGeneratorComposite(generators)
     generator.build()
 

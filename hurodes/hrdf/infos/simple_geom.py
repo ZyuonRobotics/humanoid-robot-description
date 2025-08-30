@@ -24,16 +24,16 @@ class Restitution(AttributeBase):
     name: str = "restitution"
 
 @dataclass
-class ConType(AttributeBase):
+class ContactType(AttributeBase):
     """Contact type attribute for Geom"""
-    name: str = "contype"
+    name: str = "contact_type"
     dtype: str = "int"
     mujoco_name: str = "contype"
 
 @dataclass
-class ConAffinity(AttributeBase):
+class ContactAffinity(AttributeBase):
     """Contact affinity attribute for Geom"""
-    name: str = "conaffinity"
+    name: str = "contact_affinity"
     dtype: str = "int"
     mujoco_name: str = "conaffinity"
 
@@ -71,8 +71,8 @@ GEOM_ID2NAME = {v: k for k, v in GEOM_NAME2ID.items()}
 class SimpleGeomInfo(InfoBase):
     info_name = "SimpleGeomInfo"
     attr_classes = (
-        ConType,
-        ConAffinity,
+        ContactType,
+        ContactAffinity,
         StaticFriction,
         DynamicFriction,
         Restitution,
@@ -109,8 +109,6 @@ class SimpleGeomInfo(InfoBase):
 
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
         urdf_dict[("origin", "rpy")] = str_quat2rpy(extra_dict["quat"])
-        import pdb
-        pdb.set_trace()
         return urdf_dict
     
 

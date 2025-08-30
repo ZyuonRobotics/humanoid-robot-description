@@ -18,7 +18,8 @@ class GeneratorBase(ABC):
     def __init__(self):
         """Initialize the base generator."""
         self._xml_root: Optional[ET.Element] = None
-        self.ground_dict: Optional[dict] = None
+
+        self._loaded = False
     
     @property
     @abstractmethod
@@ -62,7 +63,7 @@ class GeneratorBase(ABC):
             return ET.SubElement(self.xml_root, elem_name)
     
     @property
-    def format_str(self) -> str:
+    def xml_str(self) -> str:
         """
         Get the formatted XML string representation.
         
@@ -79,7 +80,6 @@ class GeneratorBase(ABC):
         xml_str += ET.tostring(self.xml_root, encoding='unicode', method='xml')
         return xml_str
     
-    @abstractmethod
     def load(self):
         """
         Load data from source files.
@@ -87,10 +87,11 @@ class GeneratorBase(ABC):
         This method must be implemented by subclasses to load
         format-specific data from input files or data structures.
         """
-        raise NotImplementedError("load method must be implemented by subclasses")
+        self._loaded = True
+        return
     
     @abstractmethod
-    def generate(self, prefix: Optional[str] = None):
+    def generate(self, prefix: Optional[str] = None, **kwargs):
         """
         Generate the robot description content.
         
@@ -102,7 +103,7 @@ class GeneratorBase(ABC):
         """
         raise NotImplementedError("generate method must be implemented by subclasses")
     
-    def build(self):
+    def build(self, **kwargs):
         """
         Build the complete robot description.
         
@@ -114,7 +115,8 @@ class GeneratorBase(ABC):
         Subclasses can override this method to add format-specific
         build steps (e.g., adding scenes for MJCF).
         """
-        self.load()
+        if not self._loaded:
+            self.load(**kwargs)
         self.destroy()
         self.generate()
     
@@ -129,15 +131,14 @@ class GeneratorBase(ABC):
             The formatted string representation of the robot description
         """
         self.build()
-        content = self.format_str
         
         if file_path is not None:
-            file_path = Path(file_path)
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
+                f.write(self.xml_str)
+            print(f"Exported to {file_path}")
         
-        return content
+        return self.xml_str
     
     @property
     def element_tree_str(self) -> str:

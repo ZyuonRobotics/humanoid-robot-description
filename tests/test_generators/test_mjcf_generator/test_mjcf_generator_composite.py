@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 
 from fsspec.caching import P
 
-from hurodes.generators.mjcf_generator.generator_composite import MJCFGeneratorComposite
+from hurodes.generators.mjcf_generator.mjcf_generator_composite import MJCFGeneratorComposite
 from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
 
 class MockGenerator(MJCFGeneratorBase):

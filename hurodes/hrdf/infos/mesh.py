@@ -1,15 +1,15 @@
 import xml.etree.ElementTree as ET
 
 from hurodes.hrdf.base.attribute import Position, Quaternion, Name, BodyName
-from hurodes.hrdf.infos.simple_geom import SimpleGeomInfo, ConType, ConAffinity, RGBA, StaticFriction, DynamicFriction, Restitution
+from hurodes.hrdf.infos.simple_geom import SimpleGeomInfo, ContactType, ContactAffinity, RGBA, StaticFriction, DynamicFriction, Restitution
 from hurodes.utils.convert import str_quat2rpy
 
 class MeshInfo(SimpleGeomInfo):
     info_name = "MeshInfo"
     attr_classes = (
         # contact attributes
-        ConType,
-        ConAffinity,
+        ContactType,
+        ContactAffinity,
         StaticFriction,
         DynamicFriction,
         Restitution,

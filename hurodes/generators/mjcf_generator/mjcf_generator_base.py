@@ -13,37 +13,15 @@ class MJCFGeneratorBase(GeneratorBase):
     including gravity settings, timestep configuration, and scene setup.
     """
     
-    def __init__(
-            self,
-            disable_gravity=False,
-            timestep=0.001
-    ):
-        """
-        Initialize MJCF generator.
-        
-        Args:
-            disable_gravity: Whether to disable gravity in the simulation
-            timestep: Simulation timestep in seconds
-        """
+    def __init__(self):
         super().__init__()
-        self.disable_gravity = disable_gravity
-        self.timestep = timestep
 
     @property
     def xml_root(self) -> ET.Element:
         """Get or create the MJCF root element with MJCF-specific configuration."""
         if self._xml_root is None:
             self._xml_root = ET.Element('mujoco')
-            if self.disable_gravity:
-                ET.SubElement(self.get_elem("option"), 'flag', gravity="disable")
-            if self.timestep:
-                self.get_elem("option").set('timestep', str(self.timestep))
         return self._xml_root
-
-    @property
-    def mjcf_str(self) -> str:
-        """Get the MJCF as a formatted XML string."""
-        return self.format_str
 
     def add_scene(self):
         """Add visual scene elements including lighting, textures, and ground plane."""
@@ -64,9 +42,12 @@ class MJCFGeneratorBase(GeneratorBase):
         worldbody_elem = self.get_elem("worldbody")
         light_elem = ET.SubElement(worldbody_elem, 'light', attrib=DEFAULT_SKY_LIGHT_ATTR)
         ground_attr = DEFAULT_GROUND_GEOM_ATTR
-        ground_attr["contype"] = self.ground_dict["contype"] if self.ground_dict else "1"
-        ground_attr["conaffinity"] = self.ground_dict["conaffinity"] if self.ground_dict else "1"
-        ground_attr["friction"] = f"{self.ground_dict['static_friction']} 0.005 0.0001" if self.ground_dict else "1 0.005 0.0001"
+        ground_attr.update({
+            "type": str(self.simulator_config.ground.type),
+            "contype": str(self.simulator_config.ground.contact_type),
+            "conaffinity": str(self.simulator_config.ground.contact_affinity),
+            "friction": f"{self.simulator_config.ground.friction} 0.005 0.0001",
+        })
         geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
 
     def build(self):

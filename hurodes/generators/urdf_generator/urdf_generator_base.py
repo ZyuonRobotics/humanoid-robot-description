@@ -14,14 +14,19 @@ class URDFGeneratorBase(GeneratorBase):
     including robot naming and URDF-specific XML structure.
     """
     
-    def __init__(self, robot_name: str):
+    def __init__(self):
         """
         Initialize URDF generator base class.
         
         The robot name will be set during the load method based on the directory name.
         """
         super().__init__()
-        self.robot_name = robot_name
+        self._robot_name = None
+
+    @property
+    def robot_name(self) -> str:
+        assert self._robot_name is not None, "Robot name not set"
+        return self._robot_name
 
     @property
     def xml_root(self) -> ET.Element:
@@ -29,10 +34,6 @@ class URDFGeneratorBase(GeneratorBase):
         if self._xml_root is None:
             self._xml_root = ET.Element('robot', name=self.robot_name)
         return self._xml_root
-    
-    @property
-    def urdf_str(self) -> str:
-        return self.format_str
 
     @property
     def all_link_names(self):

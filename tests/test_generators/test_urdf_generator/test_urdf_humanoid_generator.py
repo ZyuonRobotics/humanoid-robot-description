@@ -1,13 +1,15 @@
 import pytest
+import xml.etree.ElementTree as ET
 import tempfile
 import yaml
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
-from hurodes.generators.mjcf_generator.humanoid_generator import HumanoidMJCFGenerator
+from hurodes.generators.urdf_generator.urdf_humanoid_generator import URDFHumanoidGenerator
 
-class TestHumanoidMJCFGenerator:
-    """Test cases for HumanoidMJCFGenerator class."""
+
+class TestHumanoidURDFGenerator:
+    """Test cases for HumanoidURDFGenerator class."""
 
     @pytest.fixture
     def temp_hrdf_dir(self):
@@ -22,29 +24,24 @@ class TestHumanoidMJCFGenerator:
             with open(Path(temp_dir, "meta.yaml"), "w", encoding='utf-8') as f:
                 yaml.dump(meta_data, f, default_flow_style=False, allow_unicode=True, indent=2)
             
+            # Create CSV files directory structure
             yield temp_dir
 
-    def test_humanoid_mjcf_generator_init_default_params(self, temp_hrdf_dir):
-        """Test initialization with default parameters."""
-        generator = HumanoidMJCFGenerator(hrdf_path=temp_hrdf_dir)
+    def test_init_with_robot_name(self, temp_hrdf_dir):
+        """Test initialization with explicit robot name."""
+        generator = URDFHumanoidGenerator(temp_hrdf_dir, robot_name="test_robot")
+        assert generator.robot_name == "test_robot"
         assert generator.hrdf_path == temp_hrdf_dir
-        assert generator.disable_gravity is False
-        assert generator.timestep == 0.001
 
-    def test_humanoid_mjcf_generator_init_custom_params(self, temp_hrdf_dir):
-        """Test initialization with custom parameters."""
-        generator = HumanoidMJCFGenerator(
-            hrdf_path=temp_hrdf_dir,
-            disable_gravity=True,
-            timestep=0.005
-        )
-        assert generator.hrdf_path == temp_hrdf_dir
-        assert generator.disable_gravity is True
-        assert generator.timestep == 0.005
+    def test_init_without_robot_name(self, temp_hrdf_dir):
+        """Test initialization with robot name from directory."""
+        generator = URDFHumanoidGenerator(temp_hrdf_dir)
+        expected_name = Path(temp_hrdf_dir).name
+        assert generator.robot_name == expected_name
 
     def test_load_humanoid_robot(self, temp_hrdf_dir):
         """Test loading humanoid robot from HRDF."""
-        generator = HumanoidMJCFGenerator(hrdf_path=temp_hrdf_dir)
+        generator = URDFHumanoidGenerator(temp_hrdf_dir)
         generator.load()
         
         assert generator.humanoid_robot is not None
@@ -55,7 +52,7 @@ class TestHumanoidMJCFGenerator:
         for csv_name in ["body.csv", "joint.csv", "mesh.csv"]:
             Path(temp_hrdf_dir, csv_name).touch()
         
-        generator = HumanoidMJCFGenerator(hrdf_path=temp_hrdf_dir)
+        generator = URDFHumanoidGenerator(temp_hrdf_dir)
         # Should not raise an error even if CSV files are incomplete
         try:
             generator.load()
@@ -64,7 +61,7 @@ class TestHumanoidMJCFGenerator:
 
     def test_initialization(self, temp_hrdf_dir):
         """Test that generator is properly initialized."""
-        generator = HumanoidMJCFGenerator(hrdf_path=temp_hrdf_dir)
+        generator = URDFHumanoidGenerator(temp_hrdf_dir)
         
         # Check that humanoid_robot is initialized as None
         assert generator.humanoid_robot is None
@@ -72,9 +69,9 @@ class TestHumanoidMJCFGenerator:
 
     def test_generate_basic(self, temp_hrdf_dir):
         """Test basic generate functionality."""
-        generator = HumanoidMJCFGenerator(hrdf_path=temp_hrdf_dir)
+        generator = URDFHumanoidGenerator(temp_hrdf_dir)
         try:
             generator.load()
             generator.generate()
         except Exception:
-            pass  # It's ok if it fails due to incomplete HRDF data
+            pass  # It's ok if it fails due to incomplete HRDF data 

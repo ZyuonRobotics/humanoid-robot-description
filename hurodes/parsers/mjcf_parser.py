@@ -8,8 +8,8 @@ from hurodes.utils.string import get_elem_tree_str
 
 class HumanoidMJCFParser(BaseParser):
 
-    def __init__(self, mjcf_path):
-        super().__init__(mjcf_path)
+    def __init__(self, mjcf_path, robot_name):
+        super().__init__(mjcf_path, robot_name)
         self.tree = ET.parse(self.file_path)
         self.root = self.tree.getroot()
         self.worldbody = self.root.find("worldbody")

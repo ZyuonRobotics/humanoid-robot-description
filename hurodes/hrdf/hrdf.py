@@ -1,17 +1,32 @@
-import yaml
 from pathlib import Path
+from dataclasses import dataclass
+
+import yaml
 
 from hurodes.hrdf.base.info import InfoBase, load_csv, save_csv
 from hurodes.hrdf.infos import INFO_DICT
 from hurodes.utils.mesh import simplify_obj
+from hurodes import ROBOTS_PATH
+from hurodes.utils.config import BaseConfig
 
 
-class HumanoidRobot:
+class GroundConfig(BaseConfig):
+    type: str
+    contact_affinity: int
+    contact_type: int
+    friction: float
+
+class SimulatorConfig(BaseConfig):
+    timestep: float
+    gravity: list[float]
+    ground: GroundConfig
+
+class HRDF:
     def __init__(self):
+        self.robot_name = None
         self.body_parent_id: list[int] = []
-        self.ground_dict: dict[str, InfoBase] = {}
         self.mesh_file_type = None
-
+        self.simulator_config = None
         self.info_list = {
             "body": [],
             "joint": [],
@@ -25,9 +40,10 @@ class HumanoidRobot:
         instance = cls()
         with open(Path(hrdf_path, "meta.yaml"), "r", encoding='utf-8') as f:
             meta_info = yaml.safe_load(f)
+        instance.robot_name = hrdf_path.relative_to(ROBOTS_PATH).as_posix()
         instance.body_parent_id = meta_info["body_parent_id"]
         instance.mesh_file_type = meta_info["mesh_file_type"]
-        instance.ground_dict = meta_info["ground"]
+        instance.simulator_config = SimulatorConfig.from_dict(meta_info["simulator_config"])
     
         for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             component_csv = Path(hrdf_path, f"{name}.csv")
@@ -35,6 +51,10 @@ class HumanoidRobot:
                 instance.info_list[name] = load_csv(str(component_csv), INFO_DICT[name])
         return instance
 
+    @property
+    def hrdf_path(self):
+        return ROBOTS_PATH / self.robot_name
+    
     def find_info_by_attr(self, attr_name: str, attr_value: str, info_name: str, single=False):
         res = []
         for info in self.info_list[info_name]:
@@ -47,32 +67,30 @@ class HumanoidRobot:
         else:
             return res
 
-    def save(self, save_path, mesh_path=None, max_faces=8000):
+    def save(self, mesh_path=None, max_faces=8000):
         """
         Save the HumanoidRobot to HRDF format.
         
         Args:
-            save_path: Directory path to save the HRDF files
             mesh_path: Dictionary mapping mesh names to source paths (optional, for mesh processing)
             max_faces: Maximum number of faces for mesh simplification
         """
-        save_path = Path(save_path)
-        save_path.mkdir(parents=True, exist_ok=True)
+        self.hrdf_path.mkdir(parents=True, exist_ok=True)
         
         # Process mesh files if mesh_path is provided
         if mesh_path:
             for name, path in mesh_path.items():
-                new_mesh_file = save_path / "meshes" / f"{name}.{self.mesh_file_type}"
+                new_mesh_file = self.hrdf_path / "meshes" / f"{name}.{self.mesh_file_type}"
                 new_mesh_file.parent.mkdir(parents=True, exist_ok=True)
                 simplify_obj(path, new_mesh_file, max_faces)
         
         # Save metadata
-        meta_path = save_path / "meta.yaml"
+        meta_path = self.hrdf_path / "meta.yaml"
         meta_path.touch(exist_ok=True)
         meta_info = {
             "body_parent_id": self.body_parent_id,
             "mesh_file_type": self.mesh_file_type,
-            "ground": self.ground_dict
+            "simulator_config": self.simulator_config.to_dict()
         }
         with open(meta_path, "w", encoding='utf-8') as yaml_file:
             yaml.dump(meta_info, yaml_file, default_flow_style=False, allow_unicode=True, indent=2)
@@ -81,4 +99,4 @@ class HumanoidRobot:
         for info_name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             info_list = self.info_list[info_name]
             if len(info_list) > 0:
-                save_csv(info_list, save_path / f"{info_name}.csv")
+                save_csv(info_list, self.hrdf_path / f"{info_name}.csv")
