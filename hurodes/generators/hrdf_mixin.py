@@ -45,10 +45,10 @@ class HRDFMixin(ABC):
         return instance
     
     @classmethod
-    def from_hrdf_path(cls, hrdf_path: str):
+    def from_hrdf_path(cls, hrdf_path: Path):
         return cls.from_hrdf(HRDF.from_dir(hrdf_path))
 
-    def load(self, hrdf_path):
+    def load(self, hrdf_path: Path):
         self.hrdf = HRDF.from_dir(hrdf_path)
         self._loaded = True
 

@@ -9,7 +9,8 @@ class SampleURDFGenerator(URDFGeneratorBase):
     """Test implementation of URDFGeneratorBase for testing purposes."""
     
     def __init__(self, robot_name):
-        super().__init__(robot_name)
+        super().__init__()
+        self._robot_name = robot_name
     
     def load(self):
         pass
@@ -63,9 +64,8 @@ class TestURDFGeneratorBase:
         generator = SampleURDFGenerator("test_robot")
         # Generate content first to set the XML root
         generator.generate()
-        # Since format_str is inherited from GeneratorBase, test that urdf_str works
-        assert hasattr(generator, 'urdf_str')
-        urdf_content = generator.urdf_str
+        # Since xml_str is inherited from GeneratorBase, test that it works
+        urdf_content = generator.xml_str
         assert isinstance(urdf_content, str)
         assert 'robot' in urdf_content
 

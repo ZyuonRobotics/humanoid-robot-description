@@ -24,7 +24,8 @@ class MockGenerator(GeneratorBase):
     
     def load(self):
         """Mock implementation of load method"""
-        self.ground_dict = {"mock_data": "loaded"}
+        # Mock load method - just mark as loaded
+        pass
     
     def generate(self, prefix=None):
         """Mock implementation of generate method"""
@@ -57,7 +58,7 @@ class TestGeneratorBase:
     def test_initialization(self, mock_generator):
         """Test that GeneratorBase initializes correctly"""
         assert mock_generator._xml_root is None
-        assert mock_generator.ground_dict is None
+        assert not mock_generator._loaded
     
     def test_xml_root_property(self, mock_generator):
         """Test xml_root property creates and returns XML element"""

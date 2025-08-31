@@ -36,7 +36,7 @@ class HRDF:
         }
 
     @classmethod
-    def from_dir(cls, hrdf_path: str):
+    def from_dir(cls, hrdf_path: Path):
         instance = cls()
         with open(Path(hrdf_path, "meta.yaml"), "r", encoding='utf-8') as f:
             meta_info = yaml.safe_load(f)
