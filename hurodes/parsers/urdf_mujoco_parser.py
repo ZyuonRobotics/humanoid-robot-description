@@ -4,44 +4,49 @@ from pathlib import Path
 import mujoco
 
 from hurodes.parsers.base_parser import BaseParser
+from hurodes.parsers.mjcf_parser import HumanoidMJCFParser
 from hurodes.hrdf.infos.actuator import ActuatorInfo
 
-class HumanoidURDFParser(BaseParser):
-    def __init__(self, mjcf_path, mesh_dir_path=None):
-        super().__init__(mjcf_path)
-        self.mesh_dir_path = mesh_dir_path
+def is_mesh_dir(dir_path):
+    if not Path(dir_path).exists() or not Path(dir_path).is_dir():
+        return False
+    for file in Path(dir_path).iterdir():
+        if file.is_file() and file.suffix.lower() in [".obj", ".stl"]: # exist obj or stl file
+            return True
+    return False
 
+def find_mesh_dir(urdf_path, mesh_dir_path=None):
+    if mesh_dir_path is not None:
+        if is_mesh_dir(mesh_dir_path):
+            return mesh_dir_path
+    
+    if is_mesh_dir(Path(urdf_path).parent / "meshes"):
+        return Path(urdf_path).parent / "meshes"
+    if is_mesh_dir(Path(urdf_path).parent.parent / "meshes"):
+        return Path(urdf_path).parent.parent / "meshes"
+    return None
+
+
+class HumanoidURDFMujocoParser(HumanoidMJCFParser):
+    def __init__(
+        self, 
+        urdf_path, 
+        robot_name, 
+        mesh_dir_path=None,
+        timestep=0.001
+    ):
+        BaseParser.__init__(self, urdf_path, robot_name)
+        self.mesh_dir_path = mesh_dir_path
+        self.timestep = timestep
         self.tree = ET.parse(self.file_path)
         self.root = self.tree.getroot()
-
-    def is_mesh_dir(self, dir_path):
-        if not Path(dir_path).exists():
-            return False
-        if not Path(dir_path).is_dir():
-            return False
-        for file in Path(dir_path).iterdir():
-            if file.is_file() and file.suffix.lower() in [".obj", ".stl"]:
-                return True
-        return False
-        
 
     def fix_urdf(self, base_link_name="base_link"):
         # Ensure the root element is a robot tag
         if self.root.tag != 'robot':
             raise ValueError("Root element is not 'robot'")
 
-        # meshdir
-        if self.mesh_dir_path is not None:
-            if self.is_mesh_dir(self.mesh_dir_path):
-                mesh_dir = Path(self.mesh_dir_path)
-            else:
-                raise ValueError(f"Mesh directory {self.mesh_dir_path} is not a valid mesh directory")
-        elif self.is_mesh_dir(Path(self.file_path).parent / "meshes"):
-            mesh_dir = Path(self.file_path).parent / "meshes"
-        elif self.is_mesh_dir(Path(self.file_path).parent.parent / "meshes"):
-            mesh_dir = Path(self.file_path).parent.parent / "meshes"
-        else:
-            mesh_dir = None
+        mesh_dir = find_mesh_dir(self.file_path, self.mesh_dir_path)
         
         # Create mujoco tag
         mujoco_elem = self.root.find("mujoco")
@@ -58,9 +63,9 @@ class HumanoidURDFParser(BaseParser):
                 ET.SubElement(mujoco_elem, 'compiler', {'meshdir': str(mesh_dir)})
             else:
                 original_mesh_dir = compiler_elem.attrib['meshdir']
-                if self.is_mesh_dir(original_mesh_dir):
+                if is_mesh_dir(original_mesh_dir):
                     mesh_dir = Path(original_mesh_dir)
-                elif self.is_mesh_dir(Path(self.file_path).parent / original_mesh_dir):
+                elif is_mesh_dir(Path(self.file_path).parent / original_mesh_dir):
                     mesh_dir = Path(self.file_path).parent / original_mesh_dir
                 else:
                     assert mesh_dir is not None, "Mesh directory not found"
@@ -107,7 +112,7 @@ class HumanoidURDFParser(BaseParser):
                     actuator_info_dict["peak_velocity"] = float(limit.attrib['velocity'])
 
             actuator_info = ActuatorInfo.from_dict(actuator_info_dict)
-            self.humanoid_robot.info_list["actuator"].append(actuator_info)
+            self.hrdf.info_list["actuator"].append(actuator_info)
 
     @property
     def mujoco_spec(self):
@@ -115,6 +120,7 @@ class HumanoidURDFParser(BaseParser):
         ET.indent(tree, space="  ", level=0)
         urdf_string = ET.tostring(self.root, encoding='unicode', method='xml')
         spec = mujoco.MjSpec.from_string(urdf_string) # type: ignore
+        spec.option.timestep = self.timestep
         spec.compile()
         return spec
 
@@ -122,12 +128,6 @@ class HumanoidURDFParser(BaseParser):
         self.fix_urdf(base_link_name)
         super().parse()
         self.fix_actuator()
-        
-        self.humanoid_robot.ground_dict = {
-            "contype": "1",
-            "conaffinity": "1",
-            "static_friction": "1.",
-        }
 
     def print_body_tree(self, colorful=False):
         print("print_body_tree Not implemented")

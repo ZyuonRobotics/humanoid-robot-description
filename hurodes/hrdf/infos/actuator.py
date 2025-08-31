@@ -33,11 +33,21 @@ class ActuatorInfo(InfoBase):
     )
 
     @classmethod
-    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, **kwargs):
         assert part_model.ctrlrange[0] == - part_model.ctrlrange[1]
         info_dict["peak_torque"] = part_model.ctrlrange[1]
         info_dict["joint_name"] = part_spec.target.replace("-", "_")
         info_dict["name"] = part_model.name.replace("-", "_")
+        return info_dict
+
+    @classmethod
+    def _specific_parse_urdf(cls, info_dict, elem, root_elem, **kwargs):
+        assert elem.tag == "joint", f"Expected joint element, got {elem.tag}"
+        
+        joint_name = elem.get("name", "").replace("-", "_")
+        info_dict["joint_name"] = joint_name
+        info_dict["name"] = f"{joint_name}_motor"
+
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):

@@ -5,7 +5,7 @@ import mujoco
 
 from hurodes.hrdf.base.attribute import Position, Quaternion, Name, BodyName, AttributeBase
 from hurodes.hrdf.base.info import InfoBase, add_attr_to_elem
-from hurodes.utils.convert import str_quat2rpy
+from hurodes.utils.convert import str_quat2rpy, rpy2quat
 
 
 @dataclass
@@ -88,7 +88,8 @@ class SimpleGeomInfo(InfoBase):
     )
 
     @classmethod
-    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, **kwargs):
+        whole_spec = kwargs["whole_spec"]
         info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name.replace("-", "_")
         info_dict["name"] = part_spec.name.replace("-", "_")
         info_dict["static_friction"] = part_model.friction[0]
@@ -97,6 +98,15 @@ class SimpleGeomInfo(InfoBase):
 
         assert int(part_model.type) in GEOM_ID2NAME, f"Invalid geom type: {part_model.type}"
         info_dict["type"] = GEOM_ID2NAME[int(part_model.type)]
+        return info_dict
+
+    @classmethod
+    def _specific_parse_urdf(cls, info_dict, elem, root_elem, **kwargs):
+        assert elem.tag in ["visual", "collision"], f"Expected visual or collision element, got {elem.tag}"
+        
+        import pdb
+        pdb.set_trace()
+
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
@@ -115,12 +125,12 @@ class SimpleGeomInfo(InfoBase):
     def to_urdf_elem(self, root_elem, tag=None):
         urdf_dict, extra_dict = self._to_urdf_dict(tag)
 
-        if float(extra_dict["contype"]) == float(extra_dict["conaffinity"]) == 0.0:
+        if float(extra_dict["contact_type"]) == float(extra_dict["contact_affinity"]) == 0.0:
             sub_elem = ET.SubElement(root_elem, "visual")
-        elif float(extra_dict["contype"]) == float(extra_dict["conaffinity"]) == 1.0:
+        elif float(extra_dict["contact_type"]) == float(extra_dict["contact_affinity"]) == 1.0:
             sub_elem = ET.SubElement(root_elem, "collision")
         else:
-            raise ValueError(f"Invalid contype and conaffinity: {extra_dict['contype']}, {extra_dict['conaffinity']}")
+            raise ValueError(f"Invalid contact_type and contact_affinity: {extra_dict['contact_type']}, {extra_dict['contact_affinity']}")
 
         for attr_path, attr_value in urdf_dict.items():
             add_attr_to_elem(sub_elem, attr_path, attr_value)

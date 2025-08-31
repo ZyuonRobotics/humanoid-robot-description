@@ -11,15 +11,15 @@ from hurodes.utils.config import BaseConfig
 
 
 class GroundConfig(BaseConfig):
-    type: str
-    contact_affinity: int
-    contact_type: int
-    friction: float
+    type: str = "plane"
+    contact_affinity: int = 1
+    contact_type: int = 1
+    friction: float = 1.0
 
 class SimulatorConfig(BaseConfig):
-    timestep: float
-    gravity: list[float]
-    ground: GroundConfig
+    timestep: float = 0.002
+    gravity: list[float] = [0, 0, -9.81]
+    ground: GroundConfig = GroundConfig()
 
 class HRDF:
     def __init__(self):

@@ -3,7 +3,8 @@ from typing import Union, Type
 
 from hurodes.hrdf.base.attribute import Position, Quaternion, Name, Id, AttributeBase, AttributeBase
 from hurodes.hrdf.base.info import InfoBase
-from hurodes.utils.convert import str_quat2rpy
+from hurodes.utils.convert import str_quat2rpy, str_rpy2quat
+from hurodes.utils.xml import extract_attr_from_elem
 
 
 @dataclass
@@ -53,9 +54,29 @@ class BodyInfo(InfoBase):
     )
 
     @classmethod
-    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, **kwargs):
         info_dict["id"] = part_model.id - 1 # skip the world body
         info_dict["name"] = part_model.name.replace("-", "_")
+        return info_dict
+
+    @classmethod
+    def _specific_parse_urdf(cls, info_dict, elem, root_elem, **kwargs):
+        link_nodes = kwargs["link_nodes"]
+        link_name = info_dict["name"]
+        assert elem.tag == "link", f"Expected link element, got {elem.tag}"
+
+        del info_dict["pos"]
+        if link_nodes[link_name].id == 0:
+            info_dict["pos"], info_dict["quat"] = [0, 0, 0], [1, 0, 0, 0]
+        else:
+            info_dict["pos"] = link_nodes[link_name].pos
+            info_dict["quat"] = link_nodes[link_name].quat
+
+        info_dict["name"] = link_name.replace("-", "_")
+
+        inertial_rpy = extract_attr_from_elem(elem, ("inertial", "origin", "rpy"))
+        info_dict["inertial_quat"] = str_rpy2quat(inertial_rpy).split()
+        info_dict["inertial_pos"] = info_dict["inertial_pos"].split()
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):

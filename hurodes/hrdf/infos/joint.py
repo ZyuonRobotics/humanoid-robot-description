@@ -52,9 +52,21 @@ class JointInfo(InfoBase):
     )
 
     @classmethod
-    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, **kwargs):
+        whole_spec = kwargs["whole_spec"]
         info_dict["body_name"] = whole_spec.bodies[int(part_model.bodyid)].name.replace("-", "_")
         info_dict["name"] = part_spec.name.replace("-", "_")
+        return info_dict
+
+    @classmethod
+    def _specific_parse_urdf(cls, info_dict, elem, root_elem, **kwargs):
+        assert elem.tag == "joint", f"Expected joint element, got {elem.tag}"
+
+        info_dict["name"] = elem.get("name", "").replace("-", "_")
+        info_dict["body_name"] = elem.find("child").get("link").replace("-", "_")
+        info_dict["pos"] = [0., 0., 0.]
+        info_dict["axis"] = [float(x) for x in info_dict["axis"].split()]
+        
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):

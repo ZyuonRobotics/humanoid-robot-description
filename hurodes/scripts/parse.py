@@ -1,7 +1,7 @@
 import click
 from pathlib import Path
 
-from hurodes.parsers import HumanoidMJCFParser, HumanoidURDFParser
+from hurodes.parsers import HumanoidMJCFParser, HumanoidURDFMujocoParser, HumanoidURDFOriginalParser
 
 @click.command()
 @click.argument("input-path", type=str)
@@ -15,7 +15,7 @@ def main(input_path, robot_name, format_type, base_link_name):
     if format_type == "mjcf":
         parser = HumanoidMJCFParser(input_path, robot_name)
     elif format_type == "urdf":
-        parser = HumanoidURDFParser(input_path, robot_name)
+        parser = HumanoidURDFOriginalParser(input_path, robot_name)
     else:
         raise ValueError(f"Invalid format type: {format_type}")
 

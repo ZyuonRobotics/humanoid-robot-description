@@ -8,6 +8,7 @@ from bidict import bidict
 
 from hurodes.hrdf.base.attribute import AttributeBase, Name
 from hurodes.utils.string import get_prefix_name
+from hurodes.utils.xml import add_attr_to_elem, extract_attr_from_elem
 
 class InfoBase:
     info_name: str = ""
@@ -47,19 +48,39 @@ class InfoBase:
         return info
 
     @classmethod
-    def from_mujoco(cls, part_model, part_spec=None, whole_model=None, whole_spec=None):
-        """
-        This function is used to parse the information from the mujoco model and spec.
-        """
+    def from_mujoco(cls, part_model, part_spec=None, *args, **kwargs):
+        """Parse information from mujoco model and spec"""
         info_dict = {}
         for attr_class in cls.attr_classes:
             if attr_class.mujoco_name is not None:
                 info_dict[attr_class.name] = getattr(part_model, attr_class.mujoco_name)
-        info_dict = cls._specific_parse_mujoco(info_dict, part_model, part_spec, whole_model, whole_spec)
+        info_dict = cls._specific_parse_mujoco(info_dict, part_model, part_spec, *args, **kwargs)
         return cls.from_dict(info_dict)
 
     @classmethod
-    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, whole_model=None, whole_spec=None):
+    def from_urdf(cls, elem, root_elem, **kwargs):
+        """Parse information from URDF element
+        
+        Args:
+            elem: URDF XML element (link or joint)
+            urdf_path: Path to the URDF file for resolving relative paths
+        """
+        assert elem is not None, "URDF element is required"
+        
+        info_dict = {}
+        for attr_class in cls.attr_classes:
+            if attr_class.urdf_path is not None:
+                info_dict[attr_class.name] = extract_attr_from_elem(elem, attr_class.urdf_path)
+        
+        info_dict = cls._specific_parse_urdf(info_dict, elem, root_elem, **kwargs)
+        return cls.from_dict(info_dict)
+
+    @classmethod
+    def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, **kwargs):
+        return info_dict
+
+    @classmethod
+    def _specific_parse_urdf(cls, info_dict, elem, root_elem, **kwargs):
         return info_dict
 
     def to_mujoco_dict(self, tag=None, prefix=None):
@@ -97,10 +118,10 @@ class InfoBase:
             add_attr_to_elem(root_elem, attr_path, attr_value)
 
     def __repr__(self):
-        string = f"{self.info_name}(\n"
-        for attr_name, attr_value in self._dict.items():
-            string += f"    {attr_name}: {attr_value}\n"
-        string += ")"
+        string = f"{self.info_name}:\n"
+        for attr_value in self._dict.values():
+            string += f"  {attr_value}\n"
+
         return string
 
     def __getitem__(self, key: str):
@@ -120,22 +141,3 @@ def load_csv(csv_path: str, info_class: type) -> List[InfoBase]:
     df_list = df.to_dict('records')
     
     return [info_class.from_flat_dict(data_dict) for data_dict in df_list]
-
-def add_attr_to_elem(elem, attr_path, attr_value):
-    if len(attr_path) == 1:
-        if isinstance(attr_path[0], str):
-            elem.set(attr_path[0], str(attr_value))
-        elif isinstance(attr_path[0], tuple):
-            values = attr_value.split()
-            assert len(values) == len(attr_path[0]), f"Expected {len(attr_path[0])} values for {attr_path[0]}, got {len(values)}"
-            for i, value in enumerate(values):
-                elem.set(attr_path[0][i], value)
-    else:
-        sub_elem_list = elem.findall(attr_path[0])
-        if len(sub_elem_list) == 0:
-            sub_elem = ET.SubElement(elem, attr_path[0])
-        elif len(sub_elem_list) == 1:
-            sub_elem = sub_elem_list[0]
-        else:
-            raise ValueError(f"Found multiple elements with tag {attr_path[0]}")
-        add_attr_to_elem(sub_elem, attr_path[1:], attr_value)
