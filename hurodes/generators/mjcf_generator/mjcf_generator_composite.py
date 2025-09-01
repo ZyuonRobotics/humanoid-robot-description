@@ -9,21 +9,26 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
     def __init__(self, generators: Union[List, Dict], **kwargs):
         super().__init__(**kwargs)
         if isinstance(generators, dict):
-            self.generators = generators
+            self.generators: dict[str, MJCFGeneratorBase] = generators
         elif isinstance(generators, list):
-            self.generators = {f"generator{i}": g for i, g in enumerate(generators)}
+            self.generators: dict[str, MJCFGeneratorBase] = {f"generator{i}": g for i, g in enumerate(generators)}
         else:
             raise NotImplementedError
 
-    def load(self):
-        for generator in self.generators.values():
-            generator.load()
+    @property
+    def loaded(self):
+        return all(generator._loaded for generator in self.generators.values())
 
-    def generate(self, prefix=None):
+    def _load(self, **kwargs):
+        raise NotImplementedError("MJCFGeneratorComposite does not support loading, try to load each generator separately")
+
+    def _generate(self, prefix=None, add_scene=True):
         self._prepare_generators(prefix)
         self._merge_generators_xml()
         # post-processing
         self._unify_mesh_paths_and_meshdir()
+        if add_scene:
+            self.add_scene()
     
     def destroy(self):
         for generator in self.generators.values():
@@ -32,7 +37,10 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
 
     def _prepare_generators(self, prefix=None):
         for name, generator in self.generators.items():
-            generator.generate(prefix=f"{prefix}_{name}" if prefix is not None else name)
+            generator.generate(
+                prefix=f"{prefix}_{name}" if prefix is not None else name,
+                add_scene=False
+            )
 
     def _merge_generators_xml(self):
         for generator in self.generators.values():

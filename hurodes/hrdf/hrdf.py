@@ -37,6 +37,10 @@ class HRDF:
 
     @classmethod
     def from_dir(cls, hrdf_path: Path):
+        assert hrdf_path.exists(), f"HRDF path not found: {hrdf_path}"
+        assert hrdf_path.is_dir(), f"HRDF path is not a directory: {hrdf_path}"
+        assert (hrdf_path / "meta.yaml").exists(), f"meta.yaml not found in HRDF path: {hrdf_path}"
+
         instance = cls()
         with open(Path(hrdf_path, "meta.yaml"), "r", encoding='utf-8') as f:
             meta_info = yaml.safe_load(f)

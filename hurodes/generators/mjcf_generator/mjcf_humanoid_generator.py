@@ -1,17 +1,7 @@
-# import os
-from pathlib import Path
 import xml.etree.ElementTree as ET
-import math
-from collections import defaultdict
-from copy import deepcopy
-
-from colorama import Fore, Style
-import numpy as np
-import pandas as pd
 
 from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
 from hurodes.generators.hrdf_mixin import HRDFMixin
-from hurodes.hrdf.hrdf import HRDF
 from hurodes.utils.string import get_prefix_name
 
 
@@ -44,24 +34,24 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
         
         # Create body element with attributes
         body_elem = ET.SubElement(parent_body, 'body', attrib=body_info.to_mujoco_dict("body", prefix=prefix))
-        inertial_elem = ET.SubElement(body_elem, 'inertial', attrib=body_info.to_mujoco_dict("inertial", prefix=prefix))
+        ET.SubElement(body_elem, 'inertial', attrib=body_info.to_mujoco_dict("inertial", prefix=prefix))
 
         # Add joint (freejoint for root body, regular joint for others)
         if parent_body.tag == "worldbody":
-            joint_elem = ET.SubElement(body_elem, 'freejoint')
+            ET.SubElement(body_elem, 'freejoint')
         else:
             joint_info = self.find_info_by_attr("body_name", body_name, "joint", single=True)
-            joint_elem = ET.SubElement(body_elem, 'joint', attrib=joint_info.to_mujoco_dict(prefix=prefix))
+            ET.SubElement(body_elem, 'joint', attrib=joint_info.to_mujoco_dict(prefix=prefix))
 
         # Add mesh geometries
         mesh_info_list = self.find_info_by_attr("body_name", body_name, "mesh")
         for mesh_info in mesh_info_list:
-            mesh_elem = ET.SubElement(body_elem, 'geom', attrib=mesh_info.to_mujoco_dict(prefix=prefix))
+            ET.SubElement(body_elem, 'geom', attrib=mesh_info.to_mujoco_dict(prefix=prefix))
 
         # Add simple geometries
         simple_geom_info_list = self.find_info_by_attr("body_name", body_name, "simple_geom")
         for simple_geom_info in simple_geom_info_list:
-            simple_geom_elem = ET.SubElement(body_elem, 'geom', attrib=simple_geom_info.to_mujoco_dict(prefix=prefix))
+            ET.SubElement(body_elem, 'geom', attrib=simple_geom_info.to_mujoco_dict(prefix=prefix))
             
         return body_elem
 
@@ -106,18 +96,12 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
             if mesh_name in mesh_name_set:
                 continue
 
-            # Validate mesh file exists
-            mesh_file = self.validate_mesh_exists(mesh_name)
+            self.validate_mesh_exists(mesh_name)
             
-            # Create mesh element
-            mesh_elem = ET.SubElement(
-                asset_elem, 
-                'mesh', 
-                attrib={
-                    "name": get_prefix_name(prefix, mesh_name), 
-                    "file": f"{mesh_name}.{self.mesh_file_type}"
-                }
-            )
+            ET.SubElement(asset_elem, 'mesh', attrib={
+                "name": get_prefix_name(prefix, mesh_name), 
+                "file": f"{mesh_name}.{self.mesh_file_type}"
+            })
             mesh_name_set.add(mesh_name)
 
     def add_actuator(self, prefix=None):
@@ -137,16 +121,19 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
         joint_info_list = self.info_list("joint")
         for joint_info in joint_info_list:
             actuator_info = self.find_info_by_attr("joint_name", joint_info["name"].data, "actuator", single=True)
-            motor_elem = ET.SubElement(actuator_elem, 'motor', attrib=actuator_info.to_mujoco_dict(prefix=prefix))
+            ET.SubElement(actuator_elem, 'motor', attrib=actuator_info.to_mujoco_dict(prefix=prefix))
 
-    def generate(self, prefix=None):
+    def _generate(self, prefix=None, add_scene=True):
         """
         Generate the complete MJCF for the humanoid robot.
         
         Args:
             prefix: Optional prefix for element names
+            add_scene: Whether to add scene elements
         """
         self.add_compiler()
         self.add_mesh(prefix=prefix)
         self.recursive_generate_body(prefix=prefix)
         self.add_actuator(prefix=prefix)
+        if add_scene:
+            self.add_scene()

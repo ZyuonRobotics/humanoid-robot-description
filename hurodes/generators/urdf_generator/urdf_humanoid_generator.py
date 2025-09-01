@@ -23,17 +23,14 @@ class URDFHumanoidGenerator(HRDFMixin, URDFGeneratorBase):
         """
         super().__init__()
 
-    def generate(self):
+    def _generate(self, **kwargs):
         """
         Generate the complete URDF for the humanoid robot.
         
         This method creates links and joints from the HRDF data.
         """
-        # Generate links
-        link_dict = self._generate_links()
-        
-        # Generate joints
-        joint_dict = self._generate_joints()
+        self._generate_links()
+        self._generate_joints()
         
     def _generate_links(self) -> dict:
         """

@@ -9,12 +9,7 @@ from hurodes.generators.mjcf_generator.mjcf_generator_composite import MJCFGener
 from hurodes import ROBOTS_PATH
 
 @click.command()
-@click.option(
-    "robot-names",
-    prompt="Robot names (comma-separated)",
-    type=str,
-    help="Robot names (comma-separated)"
-)
+@click.argument("robot-names", type=str)
 def main(robot_names):
     robot_names_list = [name.strip() for name in robot_names.split(",") if name.strip()]
     if len(robot_names_list) < 2:
@@ -22,11 +17,9 @@ def main(robot_names):
 
     generators = [MJCFHumanoidGenerator.from_hrdf_path(Path(ROBOTS_PATH) / name) for name in robot_names_list]
     generator = MJCFGeneratorComposite(generators)
-    generator.build()
+    generator.export(Path("composite.xml"))
 
-    generator.export("composite.xml")
-
-    m = mujoco.MjModel.from_xml_string(generator.mjcf_str)  # type: ignore
+    m = mujoco.MjModel.from_xml_string(generator.xml_str)  # type: ignore
     d = mujoco.MjData(m)  # type: ignore
     with mujoco.viewer.launch_passive(m, d) as viewer:
         while viewer.is_running():

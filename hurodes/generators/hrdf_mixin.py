@@ -1,12 +1,11 @@
 from pathlib import Path
 from abc import ABC
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from hurodes.hrdf.hrdf import HRDF
 from hurodes.generators.generator_base import GeneratorBase
 from hurodes.hrdf.hrdf import SimulatorConfig
-
-
+from hurodes import ROBOTS_PATH
 class HRDFMixin(ABC):
     """
     Mixin class for HRDF robot generators.
@@ -37,20 +36,28 @@ class HRDFMixin(ABC):
         
         self.hrdf: Optional[HRDF] = None
 
+    def _load(self, **kwargs):
+        assert "hrdf" in kwargs
+        assert isinstance(kwargs["hrdf"], HRDF), "hrdf must be an instance of HRDF"
+
+        self.hrdf = kwargs["hrdf"]
+        # Check if this is an MJCF generator to set simulator config, using "self.__class__.__mro__" to avoid circular import
+        if 'MJCFGeneratorBase' in [cls.__name__ for cls in self.__class__.__mro__]:
+            self.simulator_config = self.hrdf.simulator_config
+
     @classmethod
     def from_hrdf(cls, hrdf: HRDF):
         instance = cls()
-        instance.hrdf = hrdf
-        instance._loaded = True
+        instance.load(hrdf=hrdf)
         return instance
     
     @classmethod
     def from_hrdf_path(cls, hrdf_path: Path):
-        return cls.from_hrdf(HRDF.from_dir(hrdf_path))
+        return cls.from_hrdf(HRDF.from_dir(hrdf_path=hrdf_path))
 
-    def load(self, hrdf_path: Path):
-        self.hrdf = HRDF.from_dir(hrdf_path)
-        self._loaded = True
+    @classmethod
+    def from_robot_name(cls, robot_name: str):
+        return cls.from_hrdf(HRDF.from_dir(ROBOTS_PATH / robot_name))
 
     @property
     def mesh_directory(self) -> Path:
@@ -77,11 +84,6 @@ class HRDFMixin(ABC):
     def mesh_file_type(self) -> str:
         assert self.hrdf is not None, "HRDF not loaded"
         return self.hrdf.mesh_file_type
-
-    @property
-    def simulator_config(self) -> SimulatorConfig:
-        assert self.hrdf is not None, "HRDF not loaded"
-        return self.hrdf.simulator_config
     
     def validate_mesh_exists(self, mesh_name: str) -> Path:
         assert self.hrdf is not None, "HRDF not loaded"
@@ -89,5 +91,6 @@ class HRDFMixin(ABC):
         if not mesh_file.exists():
             raise FileNotFoundError(f"Mesh file {mesh_file} does not exist")
         return mesh_file 
+
 
     

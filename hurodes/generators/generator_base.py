@@ -22,6 +22,10 @@ class GeneratorBase(ABC):
         self._loaded = False
     
     @property
+    def loaded(self):
+        return self._loaded
+
+    @property
     @abstractmethod
     def xml_root(self) -> ET.Element:
         """
@@ -80,7 +84,7 @@ class GeneratorBase(ABC):
         xml_str += ET.tostring(self.xml_root, encoding='unicode', method='xml')
         return xml_str
     
-    def load(self):
+    def load(self, **kwargs):
         """
         Load data from source files.
         
@@ -88,37 +92,38 @@ class GeneratorBase(ABC):
         format-specific data from input files or data structures.
         """
         self._loaded = True
+        self._load(**kwargs)
         return
-    
+
     @abstractmethod
-    def generate(self, prefix: Optional[str] = None, **kwargs):
+    def _load(self, **kwargs):
+        """
+        Load data from source files.
+        
+        This method must be implemented by subclasses to load
+        format-specific data from input files or data structures.
+        """
+        raise NotImplementedError("_load method must be implemented by subclasses")
+    
+    def generate(self, **kwargs):
         """
         Generate the robot description content.
         
         This method must be implemented by subclasses to create
         the format-specific XML structure and content.
-        
-        Args:
-            prefix: Optional prefix for naming elements
         """
-        raise NotImplementedError("generate method must be implemented by subclasses")
-    
-    def build(self, **kwargs):
+        assert self.loaded, "Data not loaded"
+        self._generate(**kwargs)
+        return
+
+    def _generate(self, **kwargs):
         """
-        Build the complete robot description.
+        Generate the robot description content.
         
-        This method orchestrates the build process by:
-        1. Loading data from sources
-        2. Cleaning up any existing XML tree
-        3. Generating the new content
-        
-        Subclasses can override this method to add format-specific
-        build steps (e.g., adding scenes for MJCF).
+        This method must be implemented by subclasses to create
+        the format-specific XML structure and content.
         """
-        if not self._loaded:
-            self.load(**kwargs)
-        self.destroy()
-        self.generate()
+        raise NotImplementedError("_generate method must be implemented by subclasses")
     
     def export(self, file_path: Optional[Path] = None) -> str:
         """
@@ -130,7 +135,9 @@ class GeneratorBase(ABC):
         Returns:
             The formatted string representation of the robot description
         """
-        self.build()
+        assert self.loaded, "Data not loaded"
+        self.destroy()
+        self.generate()
         
         if file_path is not None:
             file_path.parent.mkdir(parents=True, exist_ok=True)

@@ -2,19 +2,25 @@ from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 
 from hurodes.generators.generator_base import GeneratorBase
-from hurodes.generators.mjcf_generator.constants import *
+from hurodes.generators.mjcf_generator.scene_constants import (
+    DEFAULT_VISUAL_ELEM, 
+    DEFAULT_TEXTURE_ELEM, 
+    DEFAULT_MATERIAL_ATTR, 
+    DEFAULT_LIGHT_ATTR,
+    DEFAULT_GROUND_GEOM_ATTR
+)
 from hurodes.utils.string import get_elem_tree_str
+from hurodes.hrdf.hrdf import SimulatorConfig
 
 class MJCFGeneratorBase(GeneratorBase):
     """
     Base class for MJCF (MuJoCo XML Format) generators.
-    
-    This class extends GeneratorBase with MJCF-specific functionality
-    including gravity settings, timestep configuration, and scene setup.
     """
     
-    def __init__(self):
+    def __init__(self, simulator_config=None):
         super().__init__()
+
+        self.simulator_config = simulator_config
 
     @property
     def xml_root(self) -> ET.Element:
@@ -27,33 +33,29 @@ class MJCFGeneratorBase(GeneratorBase):
         """Add visual scene elements including lighting, textures, and ground plane."""
         # visual
         visual_elem = self.get_elem("visual")
-        headlight_elem = ET.SubElement(visual_elem, 'headlight',
-                                       attrib={"diffuse": "0.6 0.6 0.6", "ambient": "0.3 0.3 0.3", "specular": "0 0 0"})
-        rgba_elem = ET.SubElement(visual_elem, 'rgba', attrib={"haze": "0.15 0.25 0.35 1"})
-        global_elem = ET.SubElement(visual_elem, 'global', attrib={"azimuth": "160", "elevation": "-20"})
+        ET.SubElement(visual_elem, 'headlight', attrib=DEFAULT_VISUAL_ELEM["headlight"])
+        ET.SubElement(visual_elem, 'rgba', attrib=DEFAULT_VISUAL_ELEM["rgba"])
+        ET.SubElement(visual_elem, 'global', attrib=DEFAULT_VISUAL_ELEM["global"])
 
         # asset
         asset_elem = self.get_elem("asset")
-        ET.SubElement(asset_elem, "texture", attrib=DEFAULT_SKY_TEXTURE_ATTR)
-        ET.SubElement(asset_elem, "texture", attrib=DEFAULT_GROUND_TEXTURE_ATTR)
-        ET.SubElement(asset_elem, "material", attrib=DEFAULT_GROUND_MATERIAL_ATTR)
+        ET.SubElement(asset_elem, "texture", attrib=DEFAULT_TEXTURE_ELEM["skybox"])
+        ET.SubElement(asset_elem, "texture", attrib=DEFAULT_TEXTURE_ELEM["plane"])
+        ET.SubElement(asset_elem, "material", attrib=DEFAULT_MATERIAL_ATTR["plane"])
+
+        # light
+        ET.SubElement(self.get_elem("worldbody"), 'light', attrib=DEFAULT_LIGHT_ATTR)
 
         # ground
-        worldbody_elem = self.get_elem("worldbody")
-        light_elem = ET.SubElement(worldbody_elem, 'light', attrib=DEFAULT_SKY_LIGHT_ATTR)
         ground_attr = DEFAULT_GROUND_GEOM_ATTR
-        ground_attr.update({
-            "type": str(self.simulator_config.ground.type),
-            "contype": str(self.simulator_config.ground.contact_type),
-            "conaffinity": str(self.simulator_config.ground.contact_affinity),
-            "friction": f"{self.simulator_config.ground.friction} 0.005 0.0001",
-        })
-        geom_elem = ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
-
-    def build(self):
-        """Build the complete MJCF including scene elements."""
-        super().build()  # Call parent build method
-        self.add_scene()    # Add MJCF-specific scene elements
+        if self.simulator_config is not None:
+            ground_attr.update({
+                "type": str(self.simulator_config.ground.type),
+                "contype": str(self.simulator_config.ground.contact_type),
+                "conaffinity": str(self.simulator_config.ground.contact_affinity),
+                "friction": f"{self.simulator_config.ground.friction} 0.005 0.0001",
+            })
+        ET.SubElement(self.get_elem("worldbody"), 'geom', attrib=ground_attr)
 
     @property
     def all_body_names(self):
