@@ -28,12 +28,11 @@ class URDFGeneratorBase(GeneratorBase):
         assert self._robot_name is not None, "Robot name not set"
         return self._robot_name
 
-    @property
-    def xml_root(self) -> ET.Element:
-        """Get or create the URDF root element."""
-        if self._xml_root is None:
-            self._xml_root = ET.Element('robot', name=self.robot_name)
-        return self._xml_root
+    def _xml_root_init(self):
+        """
+        Initialize the XML root element.
+        """
+        self._xml_root = ET.Element('robot', name=self.robot_name)
 
     @property
     def all_link_names(self):

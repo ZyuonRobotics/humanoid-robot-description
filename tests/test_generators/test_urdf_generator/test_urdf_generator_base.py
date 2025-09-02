@@ -12,10 +12,10 @@ class SampleURDFGenerator(URDFGeneratorBase):
         super().__init__()
         self._robot_name = robot_name
     
-    def load(self):
+    def _load(self):
         pass
     
-    def generate(self, prefix=None):
+    def _generate(self, prefix=None):
         # Create a simple test structure
         link = ET.SubElement(self.xml_root, 'link', name='test_link')
         joint = ET.SubElement(self.xml_root, 'joint', name='test_joint', type='revolute')
@@ -63,6 +63,7 @@ class TestURDFGeneratorBase:
         """Test urdf_str property returns format_str."""
         generator = SampleURDFGenerator("test_robot")
         # Generate content first to set the XML root
+        generator.load()
         generator.generate()
         # Since xml_str is inherited from GeneratorBase, test that it works
         urdf_content = generator.xml_str
@@ -77,6 +78,7 @@ class TestURDFGeneratorBase:
     def test_all_link_names_with_links(self):
         """Test all_link_names with multiple links."""
         generator = SampleURDFGenerator("test_robot")
+        generator.load()
         generator.generate()  # This adds test_link
         link_names = generator.all_link_names
         assert "test_link" in link_names
@@ -89,6 +91,7 @@ class TestURDFGeneratorBase:
     def test_all_joint_names_with_joints(self):
         """Test all_joint_names with multiple joints."""
         generator = SampleURDFGenerator("test_robot")
+        generator.load()
         generator.generate()  # This adds test_joint
         joint_names = generator.all_joint_names
         assert "test_joint" in joint_names

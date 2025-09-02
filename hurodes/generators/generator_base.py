@@ -18,7 +18,6 @@ class GeneratorBase(ABC):
     def __init__(self):
         """Initialize the base generator."""
         self._xml_root: Optional[ET.Element] = None
-
         self._loaded = False
     
     @property
@@ -26,18 +25,23 @@ class GeneratorBase(ABC):
         return self._loaded
 
     @property
-    @abstractmethod
     def xml_root(self) -> ET.Element:
         """
         Get or create the root XML element.
         
-        This property must be implemented by subclasses to create
-        format-specific root elements (e.g., 'mujoco' for MJCF, 'robot' for URDF).
-        
         Returns:
             The root XML element for the specific format
         """
-        raise NotImplementedError("xml_root property must be implemented by subclasses")
+        if self._xml_root is None:
+            self._xml_root_init()
+        return self._xml_root
+
+    @abstractmethod
+    def _xml_root_init(self):
+        """
+        Initialize the XML root element.
+        """
+        raise NotImplementedError("_xml_root_init method must be implemented by subclasses")
     
     def destroy(self):
         """Clean up the XML tree by resetting the root element to None."""
@@ -77,7 +81,7 @@ class GeneratorBase(ABC):
         Returns:
             The formatted XML string for the specific format
         """
-        assert self._xml_root is not None, "XML root is not set"
+        assert self._xml_root is not None, "XML root is not set, call generate() first"
         xml_str = '<?xml version="1.0" encoding="utf-8"?>\n'
         tree = ET.ElementTree(self.xml_root)
         ET.indent(tree, space="  ", level=0)
@@ -113,8 +117,8 @@ class GeneratorBase(ABC):
         the format-specific XML structure and content.
         """
         assert self.loaded, "Data not loaded"
+        self.xml_root # initialize the xml_root
         self._generate(**kwargs)
-        return
 
     def _generate(self, **kwargs):
         """

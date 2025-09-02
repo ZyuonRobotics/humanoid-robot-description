@@ -13,21 +13,17 @@ class MockGenerator(GeneratorBase):
     
     def __init__(self):
         super().__init__()
-        self._mock_xml_root = None
-        
-    @property
-    def xml_root(self) -> ET.Element:
-        """Create a mock XML root element for testing"""
-        if self._mock_xml_root is None:
-            self._mock_xml_root = ET.Element("mock_root")
-        return self._mock_xml_root
+
+    def _xml_root_init(self):
+        """Mock implementation of xml_root_init method"""
+        self._xml_root = ET.Element("mock_root")
     
-    def load(self):
+    def _load(self):
         """Mock implementation of load method"""
         # Mock load method - just mark as loaded
         pass
     
-    def generate(self, prefix=None):
+    def _generate(self, prefix=None):
         """Mock implementation of generate method"""
         # Add a test element to the XML root
         test_elem = ET.SubElement(self.xml_root, "test_element")
@@ -60,7 +56,7 @@ class TestGeneratorBase:
         assert mock_generator._xml_root is None
         assert not mock_generator._loaded
     
-    def test_xml_root_property(self, mock_generator):
+    def test_xml_root_property(self, mock_generator: MockGenerator):
         """Test xml_root property creates and returns XML element"""
         root = mock_generator.xml_root
         assert isinstance(root, ET.Element)
@@ -70,13 +66,17 @@ class TestGeneratorBase:
         root2 = mock_generator.xml_root
         assert root is root2
     
-    def test_destroy(self, mock_generator):
+    def test_destroy(self, mock_generator: MockGenerator):
         """Test destroy method resets XML root"""
-        # First create an XML root
         _ = mock_generator.xml_root
-        assert mock_generator._mock_xml_root is not None
+        assert mock_generator._xml_root is not None
         
-        # Destroy and verify it's reset
         mock_generator.destroy()
         assert mock_generator._xml_root is None
     
+    def test_export(self, mock_generator: MockGenerator):
+        """Test generate method after destroy"""
+        mock_generator.load()
+        str1 = mock_generator.export()
+        str2 = mock_generator.export()
+        assert str1 == str2

@@ -14,14 +14,11 @@ class MockGenerator(MJCFGeneratorBase):
         self._mesh_name = mesh_name or f"mesh_{name}"
         self._mesh_file = mesh_file or f"{name}.stl"
         self._meshdir = meshdir
-        self.loaded = False
-        self.generated = False
 
-    def load(self):
-        self.loaded = True
+    def _load(self):
+        pass
 
-    def generate(self, prefix=None):
-        self.generated = True
+    def _generate(self, prefix=None, add_scene=True):
         # Add asset/mesh and compiler/meshdir for testing
         asset = self.get_elem("asset")
         ET.SubElement(asset, "mesh", name=self._mesh_name, file=self._mesh_file)
@@ -33,6 +30,8 @@ class MockGenerator(MJCFGeneratorBase):
 def test_composite_init_and_load():
     g1 = MockGenerator("a")
     g2 = MockGenerator("b")
+    g1.load()
+    g2.load()
     composite = MJCFGeneratorComposite([g1, g2])
     assert set(composite.generators.keys()) == {"generator0", "generator1"}
     composite.load()
@@ -42,6 +41,8 @@ def test_composite_init_and_load():
 def test_composite_generate_and_merge():
     g1 = MockGenerator("a", meshdir="/tmp/meshA")
     g2 = MockGenerator("b", meshdir="/tmp/meshB")
+    g1.load()
+    g2.load()
     composite = MJCFGeneratorComposite({"g1": g1, "g2": g2})
     composite.generate()
 
@@ -57,6 +58,8 @@ def test_composite_generate_and_merge():
 def test_get_mesh_path():
     g1 = MockGenerator("a", meshdir="/tmp/meshA")
     g2 = MockGenerator("b", meshdir="/tmp/meshB")
+    g1.load()
+    g2.load()
     composite = MJCFGeneratorComposite([g1, g2])
 
     composite._prepare_generators()

@@ -15,12 +15,15 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
         else:
             raise NotImplementedError
 
+        for name, generator in self.generators.items():
+            assert isinstance(generator, MJCFGeneratorBase), f"Generator {name} is not a MJCFGeneratorBase"
+
     @property
     def loaded(self):
         return all(generator._loaded for generator in self.generators.values())
 
     def _load(self, **kwargs):
-        raise NotImplementedError("MJCFGeneratorComposite does not support loading, try to load each generator separately")
+        assert self.loaded, "MJCFGeneratorComposite does not support loading, try to load each generator separately"
 
     def _generate(self, prefix=None, add_scene=True):
         self._prepare_generators(prefix)

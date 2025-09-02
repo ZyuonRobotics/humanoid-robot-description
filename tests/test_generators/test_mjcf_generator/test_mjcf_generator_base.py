@@ -1,27 +1,25 @@
 import xml.etree.ElementTree as ET
-from unittest.mock import Mock
+
 from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
+from hurodes.hrdf.hrdf import SimulatorConfig
 
 
 class MJCFGeneratorBaseStub(MJCFGeneratorBase):
     def __init__(self):
-        super().__init__()
-        # Mock simulator_config for tests that need ground properties
-        self._mock_simulator_config = Mock()
-        self._mock_simulator_config.ground = Mock()
-        self._mock_simulator_config.ground.type = "plane"
-        self._mock_simulator_config.ground.contact_type = 1
-        self._mock_simulator_config.ground.contact_affinity = 15
-        self._mock_simulator_config.ground.friction = 1.0
-    
-    @property
-    def simulator_config(self):
-        return self._mock_simulator_config
+        mock_simulator_config = SimulatorConfig()
+        mock_simulator_config.timestep = 0.002
+        mock_simulator_config.gravity = [0, 0, -9.81]
+        mock_simulator_config.ground.type = "plane"
+        mock_simulator_config.ground.contact_type = 1
+        mock_simulator_config.ground.contact_affinity = 15
+        mock_simulator_config.ground.friction = 1.0
 
-    def load(self):
+        super().__init__(mock_simulator_config)
+    
+    def _load(self):
         pass
 
-    def generate(self):
+    def _generate(self):
         pass
 
 
@@ -36,13 +34,13 @@ def test_mjcf_generator_build():
     assert option_elem.tag == 'option'
 
 
-def test_mjcf_generator_timestep():
+def test_mjcf_generator_timestep_and_gravity():
     generator = MJCFGeneratorBaseStub()
-    # The timestep is no longer set in constructor, but we can test 
-    # that we can manually set it in the option element
+    generator.load()
+    generator.generate()
     option_elem = generator.get_elem("option")
-    option_elem.set("timestep", "0.1")
-    assert option_elem.get("timestep") == "0.1"
+    assert option_elem.get("timestep") == "0.002"
+    assert option_elem.get("gravity") == "0 0 -9.81"
 
 
 def test_add_scene_and_build():
@@ -56,6 +54,7 @@ def test_add_scene_and_build():
 
 def test_export_returns_string(tmp_path):
     generator = MJCFGeneratorBaseStub()
+    generator.load()
     xml_str = generator.export()
     assert isinstance(xml_str, str)
     # Test export to file

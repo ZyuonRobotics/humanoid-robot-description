@@ -17,17 +17,20 @@ class MJCFGeneratorBase(GeneratorBase):
     Base class for MJCF (MuJoCo XML Format) generators.
     """
     
-    def __init__(self, simulator_config=None):
+    def __init__(self, simulator_config:SimulatorConfig = None):
         super().__init__()
 
         self.simulator_config = simulator_config
 
-    @property
-    def xml_root(self) -> ET.Element:
-        """Get or create the MJCF root element with MJCF-specific configuration."""
-        if self._xml_root is None:
-            self._xml_root = ET.Element('mujoco')
-        return self._xml_root
+    def _xml_root_init(self):
+        """
+        Initialize the XML root element.
+        """
+        self._xml_root = ET.Element('mujoco')
+        option_elem = ET.SubElement(self._xml_root, 'option')
+        if self.simulator_config is not None:
+            option_elem.set("timestep", str(self.simulator_config.timestep))
+            option_elem.set("gravity", " ".join(map(str, self.simulator_config.gravity)))
 
     def add_scene(self):
         """Add visual scene elements including lighting, textures, and ground plane."""
