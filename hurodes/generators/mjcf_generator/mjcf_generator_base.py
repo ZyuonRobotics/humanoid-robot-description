@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 
 from hurodes.generators.generator_base import GeneratorBase

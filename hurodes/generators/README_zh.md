@@ -50,7 +50,9 @@ assert str1 == str2
 
 ## MJCFGenerator
 
-`MJCFGeneratorBase`类及其子类都会持有`simulator_config`，用于设定与仿真引擎相关的信息。在`MJCFHumanoidGenerator`类中，`simulator_config`会被从HRDF中读取。
+所有MJCFGenerator都有以下特性：
+- simulator_config：`MJCFGeneratorBase`类及其子类都会持有`simulator_config`，用于设定与仿真引擎相关的信息。在`MJCFHumanoidGenerator`类中，`simulator_config`会被从HRDF中读取
+- 不使用defualt：为了简化MJCFGenerator及其子类的逻辑，我们不在MJCF中使用`<defualt>`，这一定程度上降低了其生成的MJCF的可读性，但是我们同样不鼓励在正常情况下维护和分发MJCF（你只应该维护和分发HRDF，MJCF则在被使用的时候自动导出）
 
 ### prefix和scene
 
@@ -59,3 +61,10 @@ prefix和scene是MJCFGenerator相对于其他Generator类的主要差别。他�
 其中prefix可以用来设定生成的`xml`文件的每一个名称(`name`，如`body_name`，`joint_name`，`mesh_name`等等)的前缀。其作用是防止当多个generator通过`MJCFGeneratorComposite`合并时由于名字重复而报错。这在retargeting以及多机器人交互的场景中非常实用。
 
 scene则与mujoco的特性有关，`MJCFGeneratorBase`实现了`add_scene()`函数，用于根据传入的数据（通常是`simulator_config`中的数据）以及默认值生成仿真器中的场景信息，子类可以在`_generate()`中选择是否调用`add_scene()`函数以生成场景。
+
+### MJCFGeneratorComposite
+
+`MJCFGeneratorComposite`用于将多个MJCFGenerator生成的结果合并，从而在同一个仿真引擎中实现多个机器人的交互。其主要有以下特性：
+- 不实现加载函数：`MJCFGeneratorComposite`要求传入的generator在外部完成加载，可以是在传入时已经加载好，也可以在传入后在外部加载。其`load`函数只会检测所有持有的generator是否已经加载，不会执行加载逻辑
+- 自动合并所有顶级Element：顶级Element指的是在`<mujoco>`标签直接拥有的Element，常见的有`<compiler>`，`<asset>`，`<worldbody>`，`<actuator>`和`<visual>`等
+- 合并mesh地址：自动寻找所有generator的mesh文件地址，计算所有mesh地址的公共路径，并修改每个mesh的相对路径
