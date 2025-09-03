@@ -51,8 +51,8 @@ class ActuatorInfo(InfoBase):
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
-        mujoco_dict["ctrlrange"] = f"-{extra_dict['peak_torque']} {extra_dict['peak_torque']}"
-        mujoco_dict["joint"] = extra_dict["joint_name"]
+        mujoco_dict["ctrlrange"] = f"-{extra_dict['peak_torque'].to_string()} {extra_dict['peak_torque'].to_string()}"
+        mujoco_dict["joint"] = extra_dict["joint_name"].to_string()
         mujoco_dict["ctrllimited"] = "true"
         return mujoco_dict
 

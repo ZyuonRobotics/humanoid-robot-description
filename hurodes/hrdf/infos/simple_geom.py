@@ -12,16 +12,19 @@ from hurodes.utils.convert import str_quat2rpy, rpy2quat
 class StaticFriction(AttributeBase):
     """Static friction attribute for Geom"""
     name: str = "static_friction"
+    default_value: float = 1.
 
 @dataclass
 class DynamicFriction(AttributeBase):
     """Dynamic friction attribute for Geom"""
     name: str = "dynamic_friction"
+    default_value: float = 1.
 
 @dataclass
 class Restitution(AttributeBase):
     """Restitution attribute for Geom"""
     name: str = "restitution"
+    default_value: float = 1.0
 
 @dataclass
 class ContactType(AttributeBase):
@@ -29,6 +32,7 @@ class ContactType(AttributeBase):
     name: str = "contact_type"
     dtype: str = "int"
     mujoco_name: str = "contype"
+    default_value: int = 1
 
 @dataclass
 class ContactAffinity(AttributeBase):
@@ -36,6 +40,7 @@ class ContactAffinity(AttributeBase):
     name: str = "contact_affinity"
     dtype: str = "int"
     mujoco_name: str = "conaffinity"
+    default_value: int = 1
 
 @dataclass
 class GeomType(AttributeBase):
@@ -56,6 +61,7 @@ class RGBA(AttributeBase):
     dim: int = 4
     mujoco_name: str = "rgba"
     urdf_path: tuple = ("material", "color", "rgba")
+    default_value: tuple = (0.8, 0.8, 0.8, 1.0)
 
 
 GEOM_NAME2ID = {
@@ -113,12 +119,17 @@ class SimpleGeomInfo(InfoBase):
         if mujoco_dict["name"] == "nan":
             del mujoco_dict["name"]
 
-        friction = extra_dict.get("dynamic_friction", extra_dict.get("static_friction", 1.))
+        if "static_friction" in extra_dict and extra_dict["static_friction"].data is not None:
+            friction = extra_dict["static_friction"].data
+        elif "dynamic_friction" in extra_dict and extra_dict["dynamic_friction"].data is not None:
+            friction = extra_dict["dynamic_friction"].data
+        else:
+            friction = 1.0
         mujoco_dict["friction"] = f"{friction} 0.005 0.0001"
         return mujoco_dict
 
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
-        urdf_dict[("origin", "rpy")] = str_quat2rpy(extra_dict["quat"])
+        urdf_dict[("origin", "rpy")] = str_quat2rpy(extra_dict["quat"].to_string())
         return urdf_dict
     
 

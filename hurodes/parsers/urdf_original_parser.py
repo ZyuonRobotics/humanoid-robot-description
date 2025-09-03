@@ -17,6 +17,10 @@ class LinkNode:
         self.pos = None
         self.quat = None
 
+    def __repr__(self):
+        children_names = [child.name for child in self.children]
+        return f"LinkNode(name={self.name}, joint_name={self.joint_name}, parent={self.parent.name if self.parent else None}, children={children_names}, id={self.id})"
+
 def check_and_assign_id(link_nodes):
     root = None
     for node in link_nodes.values():
@@ -38,7 +42,8 @@ def check_and_assign_id(link_nodes):
         assert current not in visited, f"Cycle detected: {current.name}"
         visited.add(current)
         
-        for child in current.children:
+        for i in range(len(current.children) - 1, -1, -1):
+            child = current.children[i]
             assert child in link_nodes.values(), f"Child node {child.name} not found in link_nodes"
             stack.append(child)
     return root

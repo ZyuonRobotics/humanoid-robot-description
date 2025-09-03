@@ -11,28 +11,33 @@ class Range(AttributeBase):
     dim: int = 2
     mujoco_name: str = "range"
     urdf_path: tuple = ("limit", ("lower", "upper"))
+    default_value: tuple = (-3.14, 3.14)
 
 @dataclass
 class Armature(AttributeBase):
     name: str = "armature"
     mujoco_name: str = "armature"
+    default_value: float = 0.05
 
 @dataclass
 class StitaticFriction(AttributeBase):
     name: str = "static_friction"
     mujoco_name: str = "frictionloss"
     urdf_path: tuple = ("dynamics", "friction")
+    default_value: float = 0.05
 
 @dataclass
 class DynamicFriction(AttributeBase):
     name: str = "dynamic_friction"
     mujoco_name: str = "frictionloss"
+    default_value: float = 0.05
 
 @dataclass
 class ViscousFriction(AttributeBase):
     name: str = "viscous_friction"
     mujoco_name: str = "damping"
     urdf_path: tuple = ("dynamics", "damping")
+    default_value: float = 0.05
 
 class JointInfo(InfoBase):
     info_name = "JointInfo"

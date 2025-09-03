@@ -29,6 +29,7 @@ class AttributeBase:
     dim: int = 0
     mujoco_name: str = None
     urdf_path: tuple = None
+    default_value: Any = None # only used for generating
 
     def __init_subclass__(cls):
         if isinstance(cls.dtype, str):
@@ -72,7 +73,11 @@ class AttributeBase:
         else:
             for i in range(self.dim):
                 assert f"{self.name}{i}" in flat_dict, f"Attribute {self.name}{i} not found in attr_dict"
-            self.data = [flat_dict[f"{self.name}{i}"] for i in range(self.dim)]
+            data = [flat_dict[f"{self.name}{i}"] for i in range(self.dim)]
+            if all([data[i] is None for i in range(self.dim)]):
+                data = None
+            else:
+                self.data = data
 
     @classmethod
     def from_flat_dict(cls, flat_dict: Dict[str, Any]):
@@ -96,14 +101,21 @@ class AttributeBase:
         else:
             return {self.name: self.data}
 
-    def to_string(self):
+    def to_string(self, using_default: bool = False):
+        if using_default:
+            assert self.data is not None or self.default_value is not None, f"Data is None for Attribute {self.name}"
+            data = self.data if self.data is not None else self.default_value
+        else:
+            assert self.data is not None, f"Data is None for Attribute {self.name}"
+            data = self.data
+
         if self.dim == 0:
-            if self.dtype == str and str(self.data) == "nan":
+            if self.dtype == str and str(data) == "nan":
                 return ""
             else:
-                return str(self.data)
+                return str(data)
         else:
-            return " ".join([str(data) for data in self.data])
+            return " ".join([str(data) for data in data])
 
 @dataclass
 class Position(AttributeBase):

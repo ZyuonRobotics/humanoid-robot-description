@@ -66,11 +66,16 @@ class MeshInfo(SimpleGeomInfo):
         mujoco_dict["mesh"] = mujoco_dict.pop("name")
         mujoco_dict["type"] = "mesh"
 
-        friction = extra_dict.get("dynamic_friction", extra_dict.get("static_friction", 1.))
+        if "static_friction" in extra_dict and extra_dict["static_friction"].data is not None:
+            friction = extra_dict["static_friction"].data
+        elif "dynamic_friction" in extra_dict and extra_dict["dynamic_friction"].data is not None:
+            friction = extra_dict["dynamic_friction"].data
+        else:
+            friction = 1.0
         mujoco_dict["friction"] = f"{friction} 0.005 0.0001"
         return mujoco_dict
 
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
-        urdf_dict[("origin", "rpy")] = str_quat2rpy(extra_dict["quat"])
-        urdf_dict[("geometry", "mesh", "filename")] = extra_dict["name"] + ".stl"
+        urdf_dict[("origin", "rpy")] = str_quat2rpy(extra_dict["quat"].to_string())
+        urdf_dict[("geometry", "mesh", "filename")] = extra_dict["name"].to_string() + ".stl"
         return urdf_dict

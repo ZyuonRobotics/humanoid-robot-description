@@ -85,14 +85,13 @@ class InfoBase:
 
     def to_mujoco_dict(self, tag=None, prefix=None):
         mujoco_dict, extra_dict = {}, {}
-        for attr_class in self.attr_classes:
-            attr_value = self[attr_class.name].to_string()
+        for attr_class, attr_value in zip(self.attr_classes, self._dict.values()):
             if issubclass(attr_class, Name):
-                attr_value = get_prefix_name(prefix, attr_value)
-
+                attr_value.data = get_prefix_name(prefix, attr_value.to_string())
             extra_dict[attr_class.name] = attr_value
+
             if attr_class.mujoco_name is not None:
-                mujoco_dict[attr_class.mujoco_name] = attr_value
+                mujoco_dict[attr_class.mujoco_name] = attr_value.to_string(using_default=True)
         
         mujoco_dict = self._specific_generate_mujoco(mujoco_dict, extra_dict, tag)
         return mujoco_dict
@@ -136,8 +135,9 @@ def save_csv(info_list: List[InfoBase], save_path: str):
     df.to_csv(save_path, index=False)
 
 
-def load_csv(csv_path: str, info_class: type) -> List[InfoBase]:
+def load_csv(csv_path: str, info_class: Type[InfoBase]) -> List[InfoBase]:
     df = pd.read_csv(csv_path)
+    df = df.replace({np.nan: None})
     df_list = df.to_dict('records')
     
     return [info_class.from_flat_dict(data_dict) for data_dict in df_list]

@@ -21,6 +21,7 @@ class Mass(AttributeBase):
     name: str = "mass"
     mujoco_name: str = "mass"
     urdf_path: tuple = ("inertial", "mass", "value")
+    default_value: float = 1.0
 
 @dataclass
 class InertialPosition(Position):
@@ -29,6 +30,7 @@ class InertialPosition(Position):
     name: str = "inertial_pos"
     mujoco_name: str = "ipos"
     urdf_path: tuple = ("inertial", "origin", "xyz")
+
 
 @dataclass
 class InertialQuaternion(Quaternion):
@@ -73,6 +75,8 @@ class BodyInfo(InfoBase):
             info_dict["quat"] = link_nodes[link_name].quat
 
         info_dict["name"] = link_name.replace("-", "_")
+        info_dict["id"] = link_nodes[link_name].id
+        
 
         inertial_rpy = extract_attr_from_elem(elem, ("inertial", "origin", "rpy"))
         info_dict["inertial_quat"] = str_rpy2quat(inertial_rpy).split()
@@ -95,12 +99,12 @@ class BodyInfo(InfoBase):
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
         if tag == "link":
             del urdf_dict[("origin", "xyz")]
-            urdf_dict[("inertial", "origin", "rpy")] = str_quat2rpy(extra_dict["inertial_quat"])
+            urdf_dict[("inertial", "origin", "rpy")] = str_quat2rpy(extra_dict["inertial_quat"].to_string())
             return urdf_dict
         elif tag == "joint":
             return {
                 ("origin", "xyz"): urdf_dict.pop(("origin", "xyz")),
-                ("origin", "rpy"): str_quat2rpy(extra_dict["quat"])
+                ("origin", "rpy"): str_quat2rpy(extra_dict["quat"].to_string())
             }
         else:
             raise ValueError(f"Invalid tag: {tag}")
