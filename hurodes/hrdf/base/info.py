@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import List, Type, Dict, Any, ClassVar, Optional, Union
 import numpy as np
 import pandas as pd
@@ -85,7 +86,9 @@ class InfoBase:
 
     def to_mujoco_dict(self, tag=None, prefix=None):
         mujoco_dict, extra_dict = {}, {}
-        for attr_class, attr_value in zip(self.attr_classes, self._dict.values()):
+        for attr_class in self.attr_classes:
+            # using copy here to avoid modifying the original attribute value
+            attr_value = deepcopy(self[attr_class.name])
             if issubclass(attr_class, Name):
                 attr_value.data = get_prefix_name(prefix, attr_value.to_string())
             extra_dict[attr_class.name] = attr_value
@@ -96,19 +99,20 @@ class InfoBase:
         mujoco_dict = self._specific_generate_mujoco(mujoco_dict, extra_dict, tag)
         return mujoco_dict
 
-    def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag=None):
+    def _specific_generate_mujoco(self, mujoco_dict, extra_dict: Dict[str, AttributeBase], tag=None):
         return mujoco_dict
 
     def _to_urdf_dict(self, tag=None):
         urdf_dict, extra_dict = {}, {}
         for attr_class in self.attr_classes:
-            extra_dict[attr_class.name] = self[attr_class.name].to_string()
+            attr_value = deepcopy(self[attr_class.name])
+            extra_dict[attr_class.name] = attr_value
             if attr_class.urdf_path is not None:
-                urdf_dict[attr_class.urdf_path] = self[attr_class.name].to_string()                
+                urdf_dict[attr_class.urdf_path] = attr_value.to_string(using_default=True)                
         urdf_dict = self._specific_generate_urdf(urdf_dict, extra_dict, tag)
         return urdf_dict, extra_dict
 
-    def _specific_generate_urdf(self, urdf_dict, extra_dict, tag=None):
+    def _specific_generate_urdf(self, urdf_dict, extra_dict: Dict[str, AttributeBase], tag=None):
         return urdf_dict
 
     def to_urdf_elem(self, root_elem, tag=None):

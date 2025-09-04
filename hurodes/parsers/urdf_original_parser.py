@@ -148,6 +148,7 @@ class HumanoidURDFOriginalParser(BaseParser):
         self.collect_body_info()
         self.collect_joint_info()
         self.collect_mesh_path()
+        self.hrdf.fix_simple_geom()
 
         body_parent_id = [0] * len(self.link_nodes)
         for node in self.link_nodes.values():

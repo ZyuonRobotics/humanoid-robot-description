@@ -104,3 +104,8 @@ class HRDF:
             info_list = self.info_list[info_name]
             if len(info_list) > 0:
                 save_csv(info_list, self.hrdf_path / f"{info_name}.csv")
+
+    def fix_simple_geom(self):
+        for idx, simple_geom in enumerate(self.info_list["simple_geom"]):
+            if simple_geom["name"].data == "":
+                simple_geom["name"].data = f"geom_{idx}"

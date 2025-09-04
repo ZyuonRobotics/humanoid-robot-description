@@ -41,7 +41,7 @@ class HumanoidMJCFParser(BaseParser):
     def collect_joint_info(self, model, spec):
         assert model.joint(0).type[0] == 0, "First joint should be free."
         for jnt_idx in range(1, model.njnt):
-            joint_info = JointInfo.from_mujoco(model.joint(jnt_idx), spec.joints[jnt_idx])
+            joint_info = JointInfo.from_mujoco(model.joint(jnt_idx), spec.joints[jnt_idx], whole_spec=spec)
             self.hrdf.info_list["joint"].append(joint_info)
 
     def collect_actuator_info(self, model, spec):
@@ -108,4 +108,5 @@ class HumanoidMJCFParser(BaseParser):
         self.collect_actuator_info(model, spec)
         self.collect_geom_info(model, spec)
         self.collect_mesh_path(spec)
+        self.hrdf.fix_simple_geom()
         self.hrdf.simulator_config = SimulatorConfig.from_dict(self.simulator_dict)

@@ -136,12 +136,12 @@ class SimpleGeomInfo(InfoBase):
     def to_urdf_elem(self, root_elem, tag=None):
         urdf_dict, extra_dict = self._to_urdf_dict(tag)
 
-        if float(extra_dict["contact_type"]) == float(extra_dict["contact_affinity"]) == 0.0:
+        if float(extra_dict["contact_type"].data) == float(extra_dict["contact_affinity"].data) == 0.0:
             sub_elem = ET.SubElement(root_elem, "visual")
-        elif float(extra_dict["contact_type"]) == float(extra_dict["contact_affinity"]) == 1.0:
+        elif float(extra_dict["contact_type"].data) == float(extra_dict["contact_affinity"].data) == 1.0:
             sub_elem = ET.SubElement(root_elem, "collision")
         else:
-            raise ValueError(f"Invalid contact_type and contact_affinity: {extra_dict['contact_type']}, {extra_dict['contact_affinity']}")
+            raise ValueError(f"Invalid contact_type and contact_affinity: {extra_dict['contact_type'].data}, {extra_dict['contact_affinity'].data}")
 
         for attr_path, attr_value in urdf_dict.items():
             add_attr_to_elem(sub_elem, attr_path, attr_value)

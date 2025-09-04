@@ -60,6 +60,8 @@ prefix和scene是MJCFGenerator相对于其他Generator类的主要差别。他�
 
 其中prefix可以用来设定生成的`xml`文件的每一个名称(`name`，如`body_name`，`joint_name`，`mesh_name`等等)的前缀。其作用是防止当多个generator通过`MJCFGeneratorComposite`合并时由于名字重复而报错。这在retargeting以及多机器人交互的场景中非常实用。
 
+注意：prefix只在generate的时候被使用，他不应该对HRDF本身产生任何更改。
+
 scene则与mujoco的特性有关，`MJCFGeneratorBase`实现了`add_scene()`函数，用于根据传入的数据（通常是`simulator_config`中的数据）以及默认值生成仿真器中的场景信息，子类可以在`_generate()`中选择是否调用`add_scene()`函数以生成场景。
 
 ### MJCFGeneratorComposite
