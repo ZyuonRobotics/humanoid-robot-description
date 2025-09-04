@@ -25,6 +25,10 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
     def _load(self, **kwargs):
         assert self.loaded, "MJCFGeneratorComposite does not support loading, try to load each generator separately"
 
+    def _clean(self):
+        for generator in self.generators.values():
+            generator.clean()
+
     def _generate(self, prefix=None, add_scene=True):
         self._prepare_generators(prefix)
         self._merge_generators_xml()

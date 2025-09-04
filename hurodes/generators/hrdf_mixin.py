@@ -45,19 +45,25 @@ class HRDFMixin(ABC):
         if 'MJCFGeneratorBase' in [cls.__name__ for cls in self.__class__.__mro__]:
             self.simulator_config = self.hrdf.simulator_config
 
+    def _clean(self):
+        self.hrdf = None
+
+    def _destroy(self):
+        pass
+
     @classmethod
-    def from_hrdf(cls, hrdf: HRDF):
-        instance = cls()
+    def from_hrdf(cls, hrdf: HRDF, **kwargs):
+        instance = cls(**kwargs)
         instance.load(hrdf=hrdf)
         return instance
     
     @classmethod
-    def from_hrdf_path(cls, hrdf_path: Path):
-        return cls.from_hrdf(HRDF.from_dir(hrdf_path=hrdf_path))
+    def from_hrdf_path(cls, hrdf_path: Path, **kwargs):
+        return cls.from_hrdf(HRDF.from_dir(hrdf_path=hrdf_path), **kwargs)
 
     @classmethod
-    def from_robot_name(cls, robot_name: str):
-        return cls.from_hrdf(HRDF.from_dir(ROBOTS_PATH / robot_name))
+    def from_robot_name(cls, robot_name: str, **kwargs):
+        return cls.from_hrdf(HRDF.from_dir(ROBOTS_PATH / robot_name), **kwargs)
 
     @property
     def mesh_directory(self) -> Path:

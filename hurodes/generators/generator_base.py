@@ -46,6 +46,13 @@ class GeneratorBase(ABC):
     def destroy(self):
         """Clean up the XML tree by resetting the root element to None."""
         self._xml_root = None
+        self._destroy()
+
+    def _destroy(self):
+        """
+        Clean up the XML tree by resetting the root element to None.
+        """
+        raise NotImplementedError("_destroy method must be implemented by subclasses")
     
     def get_elem(self, elem_name: str) -> ET.Element:
         """
@@ -98,6 +105,21 @@ class GeneratorBase(ABC):
         self._loaded = True
         self._load(**kwargs)
         return
+
+    def clean(self):
+        """
+        Clean the data.
+        """
+        self._loaded = False
+        self._clean()
+        self.destroy()
+        
+    @abstractmethod
+    def _clean(self):
+        """
+        Clean the data.
+        """
+        raise NotImplementedError("_clean method must be implemented by subclasses")
 
     @abstractmethod
     def _load(self, **kwargs):
