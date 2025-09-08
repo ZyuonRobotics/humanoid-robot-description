@@ -37,10 +37,9 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
         if add_scene:
             self.add_scene()
     
-    def destroy(self):
+    def _destroy(self):
         for generator in self.generators.values():
             generator.destroy()
-        super().destroy()
 
     def _prepare_generators(self, prefix=None):
         for name, generator in self.generators.items():

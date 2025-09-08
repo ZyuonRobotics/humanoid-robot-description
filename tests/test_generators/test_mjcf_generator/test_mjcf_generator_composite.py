@@ -18,6 +18,16 @@ class MockGenerator(MJCFGeneratorBase):
     def _load(self):
         pass
 
+    def _clean(self):
+        """Mock implementation of clean method"""
+        # No specific cleanup needed for tests
+        pass
+
+    def _destroy(self):
+        """Mock implementation of destroy method"""
+        # No specific cleanup needed for tests
+        pass
+
     def _generate(self, prefix=None, add_scene=True):
         # Add asset/mesh and compiler/meshdir for testing
         asset = self.get_elem("asset")

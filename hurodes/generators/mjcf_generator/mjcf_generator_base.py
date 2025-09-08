@@ -31,6 +31,13 @@ class MJCFGeneratorBase(GeneratorBase):
             option_elem.set("timestep", str(self.simulator_config.timestep))
             option_elem.set("gravity", " ".join(map(str, self.simulator_config.gravity)))
 
+    def _clean(self):
+        """
+        Clean up MJCF-specific data.
+        """
+        # Reset simulator config if needed
+        pass
+
     def add_scene(self):
         """Add visual scene elements including lighting, textures, and ground plane."""
         # visual

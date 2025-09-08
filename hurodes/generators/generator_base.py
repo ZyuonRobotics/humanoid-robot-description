@@ -19,10 +19,15 @@ class GeneratorBase(ABC):
         """Initialize the base generator."""
         self._xml_root: Optional[ET.Element] = None
         self._loaded = False
+        self._generated = False
     
     @property
     def loaded(self):
         return self._loaded
+
+    @property
+    def generated(self):
+        return self._generated and self._xml_root is not None
 
     @property
     def xml_root(self) -> ET.Element:
@@ -47,6 +52,7 @@ class GeneratorBase(ABC):
         """Clean up the XML tree by resetting the root element to None."""
         self._xml_root = None
         self._destroy()
+        self._generated = False
 
     def _destroy(self):
         """
@@ -88,7 +94,7 @@ class GeneratorBase(ABC):
         Returns:
             The formatted XML string for the specific format
         """
-        assert self._xml_root is not None, "XML root is not set, call generate() first"
+        assert self._generated, "XML root is not generated, call generate() first"
         xml_str = '<?xml version="1.0" encoding="utf-8"?>\n'
         tree = ET.ElementTree(self.xml_root)
         ET.indent(tree, space="  ", level=0)
@@ -141,6 +147,7 @@ class GeneratorBase(ABC):
         assert self.loaded, "Data not loaded"
         self.xml_root # initialize the xml_root
         self._generate(**kwargs)
+        self._generated = True
 
     def _generate(self, **kwargs):
         """

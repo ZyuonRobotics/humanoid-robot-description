@@ -97,6 +97,3 @@ class HRDFMixin(ABC):
         if not mesh_file.exists():
             raise FileNotFoundError(f"Mesh file {mesh_file} does not exist")
         return mesh_file 
-
-
-    

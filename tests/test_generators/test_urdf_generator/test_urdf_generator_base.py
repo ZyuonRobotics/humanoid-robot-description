@@ -15,6 +15,11 @@ class SampleURDFGenerator(URDFGeneratorBase):
     def _load(self):
         pass
     
+    def _clean(self):
+        """Mock implementation of clean method"""
+        # No specific cleanup needed for tests
+        pass
+    
     def _generate(self, prefix=None):
         # Create a simple test structure
         link = ET.SubElement(self.xml_root, 'link', name='test_link')

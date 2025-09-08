@@ -34,7 +34,7 @@ class ActuatorInfo(InfoBase):
 
     @classmethod
     def _specific_parse_mujoco(cls, info_dict, part_model, part_spec=None, **kwargs):
-        assert part_model.ctrlrange[0] == - part_model.ctrlrange[1]
+        assert part_model.ctrlrange[0] == - part_model.ctrlrange[1], f"Invalid ctrlrange: {part_model.ctrlrange}"
         info_dict["peak_torque"] = part_model.ctrlrange[1]
         info_dict["joint_name"] = part_spec.target.replace("-", "_")
         info_dict["name"] = part_model.name.replace("-", "_")

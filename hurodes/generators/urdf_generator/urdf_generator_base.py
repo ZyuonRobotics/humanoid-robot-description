@@ -34,6 +34,9 @@ class URDFGeneratorBase(GeneratorBase):
         """
         self._xml_root = ET.Element('robot', name=self.robot_name)
 
+    def _clean(self):
+        pass
+
     @property
     def all_link_names(self):
         """Get all link names in the URDF."""

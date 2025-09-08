@@ -23,6 +23,16 @@ class MockGenerator(GeneratorBase):
         # Mock load method - just mark as loaded
         pass
     
+    def _clean(self):
+        """Mock implementation of clean method"""
+        # Mock clean method - no specific cleanup needed for tests
+        pass
+
+    def _destroy(self):
+        """Mock implementation of destroy method"""
+        # Mock destroy method - no specific cleanup needed for tests
+        pass
+    
     def _generate(self, prefix=None):
         """Mock implementation of generate method"""
         # Add a test element to the XML root

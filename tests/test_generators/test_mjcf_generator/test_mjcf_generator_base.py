@@ -19,6 +19,16 @@ class MJCFGeneratorBaseStub(MJCFGeneratorBase):
     def _load(self):
         pass
 
+    def _clean(self):
+        """Mock implementation of clean method"""
+        # No specific cleanup needed for tests
+        pass
+
+    def _destroy(self):
+        """Mock implementation of destroy method"""
+        # No specific cleanup needed for tests
+        pass
+
     def _generate(self):
         pass
 
