@@ -148,7 +148,7 @@ class GeneratorBase(ABC):
         self.xml_root # initialize the xml_root
         self._generate(**kwargs)
         self._generated = True
-
+    
     def _generate(self, **kwargs):
         """
         Generate the robot description content.
@@ -158,7 +158,7 @@ class GeneratorBase(ABC):
         """
         raise NotImplementedError("_generate method must be implemented by subclasses")
     
-    def export(self, file_path: Optional[Path] = None) -> str:
+    def export(self, file_path: Optional[Path] = None, **kwargs) -> str:
         """
         Export the robot description to a file or return as string.
         
@@ -170,7 +170,7 @@ class GeneratorBase(ABC):
         """
         assert self.loaded, "Data not loaded"
         self.destroy()
-        self.generate()
+        self.generate(**kwargs)
         
         if file_path is not None:
             file_path.parent.mkdir(parents=True, exist_ok=True)

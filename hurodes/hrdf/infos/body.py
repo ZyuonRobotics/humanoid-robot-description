@@ -100,11 +100,15 @@ class BodyInfo(InfoBase):
         if tag == "link":
             del urdf_dict[("origin", "xyz")]
             urdf_dict[("inertial", "origin", "rpy")] = str_quat2rpy(extra_dict["inertial_quat"].to_string())
+            urdf_dict[("inertial", "inertia", ("ixy", "ixz", "iyz"))] = "0. 0. 0."
             return urdf_dict
-        elif tag == "joint":
+        elif tag == "child":
             return {
                 ("origin", "xyz"): urdf_dict.pop(("origin", "xyz")),
-                ("origin", "rpy"): str_quat2rpy(extra_dict["quat"].to_string())
+                ("origin", "rpy"): str_quat2rpy(extra_dict["quat"].to_string()),
+                ("child", "link"): extra_dict["name"].data
             }
+        elif tag == "parent":
+            return {("parent", "link"): extra_dict["name"].data}
         else:
             raise ValueError(f"Invalid tag: {tag}")

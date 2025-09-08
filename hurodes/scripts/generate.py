@@ -11,21 +11,20 @@ from hurodes import ROBOTS_PATH
 @click.command()
 @click.argument("robot-name", type=str)
 @click.option("--format-type", type=str, default="mjcf", help="Format type", prompt="Format type")
-def main(robot_name, format_type):
+@click.option("--mujoco-urdf/--not-mujoco-urdf", type=bool, default=False, help="Whether to generate MuJoCo URDF")
+def main(robot_name, format_type, mujoco_urdf):
     hrdf_path = Path(ROBOTS_PATH) / robot_name
 
     if format_type == "mjcf":
         generator = MJCFHumanoidGenerator.from_hrdf_path(hrdf_path)
-        output_filename = "robot.xml"
+        xml_string = generator.export(hrdf_path / "robot.xml")
     elif format_type == "urdf":
         generator = URDFHumanoidGenerator.from_hrdf_path(hrdf_path)
-        output_filename = "robot.urdf"
+        xml_string = generator.export(hrdf_path / "robot.urdf", mujoco_urdf=mujoco_urdf)
     else:
         raise ValueError(f"Invalid format type: {format_type}")
 
-    xml_string = generator.export(hrdf_path / output_filename)
-
-    if format_type == "mjcf":
+    if format_type == "mjcf" or (mujoco_urdf and format_type == "urdf"):
         # Only apply mesh directory replacement for MJCF
         xml_string = xml_string.replace(
             'meshdir="meshes"', 
@@ -39,8 +38,6 @@ def main(robot_name, format_type):
             while viewer.is_running():
                 mujoco.mj_step(m, d) # type: ignore
                 viewer.sync()
-    elif format_type == "urdf":
-        print("Note: URDF format does not support MuJoCo viewer. Use RViz or other URDF-compatible viewers.")
 
 if __name__ == "__main__":
     main()

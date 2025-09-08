@@ -54,7 +54,11 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
             mujoco_elem = ET.Element('mujoco')
             
             assert mesh_dir is not None, "Mesh directory not found"
-            ET.SubElement(mujoco_elem, 'compiler', {'meshdir': str(mesh_dir)})
+            ET.SubElement(mujoco_elem, 'compiler', attrib={
+                'meshdir': str(mesh_dir),
+                "balanceinertia": "true",
+                "discardvisual": "false"
+            })
             self.root.insert(0, mujoco_elem)
         else:
             compiler_elem = mujoco_elem.find("compiler")

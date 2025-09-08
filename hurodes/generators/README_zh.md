@@ -74,3 +74,6 @@ scene则与mujoco的特性有关，`MJCFGeneratorBase`实现了`add_scene()`函�
 - 不实现加载函数：`MJCFGeneratorComposite`要求传入的generator在外部完成加载，可以是在传入时已经加载好，也可以在传入后在外部加载。其`load`函数只会检测所有持有的generator是否已经加载，不会执行加载逻辑
 - 自动合并所有顶级Element：顶级Element指的是在`<mujoco>`标签直接拥有的Element，常见的有`<compiler>`，`<asset>`，`<worldbody>`，`<actuator>`和`<visual>`等
 - 合并mesh地址：自动寻找所有generator的mesh文件地址，计算所有mesh地址的公共路径，并修改每个mesh的相对路径
+
+## URDFGenerator
+
