@@ -12,7 +12,7 @@ dependencies = [
     "click>=8.0",
     "mujoco>=3.3.0",
     "tqdm>=4.67.1",
-    "trimesh>=4.6.10",
+    "trimesh>=4.5.10",
     "fast-simplification>=0.1.11",
     "bidict",
     "PyYAML>=6.0"
