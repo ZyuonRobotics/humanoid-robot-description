@@ -1,10 +1,12 @@
 from pathlib import Path
 from dataclasses import dataclass
+from typing import Optional
+from functools import partial
 
 import yaml
 
 from hurodes.hrdf.base.info import InfoBase, load_csv, save_csv
-from hurodes.hrdf.infos import INFO_DICT
+from hurodes.hrdf.infos import INFO_CLASS_DICT
 from hurodes.utils.mesh import simplify_obj
 from hurodes import ROBOTS_PATH
 from hurodes.utils.config import BaseConfig
@@ -22,18 +24,14 @@ class SimulatorConfig(BaseConfig):
     ground: GroundConfig = GroundConfig()
 
 class HRDF:
-    def __init__(self):
+    def __init__(self, info_class_dict: Optional[dict[str, type[InfoBase]]] = None, **kwargs):
+        self.info_class_dict = info_class_dict or INFO_CLASS_DICT
+        self.info_list = {name: [] for name in self.info_class_dict.keys()}
+
         self.robot_name = None
         self.body_parent_id: list[int] = []
         self.mesh_file_type = None
         self.simulator_config = None
-        self.info_list = {
-            "body": [],
-            "joint": [],
-            "actuator": [],
-            "mesh": [],
-            "simple_geom": [],
-        }
 
     @classmethod
     def from_dir(cls, hrdf_path: Path):
@@ -52,7 +50,7 @@ class HRDF:
         for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             component_csv = Path(hrdf_path, f"{name}.csv")
             if component_csv.exists():
-                instance.info_list[name] = load_csv(str(component_csv), INFO_DICT[name])
+                instance.info_list[name] = load_csv(str(component_csv), instance.info_class_dict[name])
         return instance
 
     @property
@@ -109,3 +107,19 @@ class HRDF:
         for idx, simple_geom in enumerate(self.info_list["simple_geom"]):
             if simple_geom["name"].data == "":
                 simple_geom["name"].data = f"geom_{idx}"
+
+    def __getattr__(self, name: str):
+        for info_name in self.info_class_dict.keys():
+            if name == f"get_{info_name}_dict":
+                return partial(self.get_info_data_dict, info_name)
+            elif name == f"get_{info_name}_list":
+                return partial(self.get_info_data_list, info_name)
+        raise AttributeError(f"Attribute {name} not found")
+
+    def get_info_data_dict(self, info_name: str, key_attr: str, value_attr: str):
+        assert info_name in self.info_class_dict, f"Info name {info_name} not found"
+        return {info[key_attr].data: info[value_attr].data for info in self.info_list[info_name]}
+
+    def get_info_data_list(self, info_name: str, attr: str):
+        assert info_name in self.info_class_dict, f"Info name {info_name} not found"
+        return [info[attr].data for info in self.info_list[info_name]]

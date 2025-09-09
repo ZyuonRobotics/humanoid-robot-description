@@ -4,7 +4,7 @@ from hurodes.hrdf.infos.simple_geom import SimpleGeomInfo
 from hurodes.hrdf.infos.joint import JointInfo
 from hurodes.hrdf.infos.mesh import MeshInfo
 
-INFO_DICT = {
+INFO_CLASS_DICT = {
     "actuator": ActuatorInfo,
     "body": BodyInfo,
     "simple_geom": SimpleGeomInfo,

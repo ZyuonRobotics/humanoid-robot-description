@@ -7,6 +7,8 @@ from hurodes.generators.mjcf_generator.mjcf_humanoid_generator import MJCFHumano
 from hurodes.generators.urdf_generator.urdf_humanoid_generator import URDFHumanoidGenerator
 from hurodes import ROBOTS_PATH
 
+def is_robot_path(path: Path) -> bool:
+    return path.is_dir() and (path / "meta.yaml").exists()
 
 class HumanoidRobot:
     """
@@ -42,15 +44,9 @@ class HumanoidRobot:
         if not ROBOTS_PATH.exists():
             return robot_names
             
-        # Iterate through all directories in ROBOTS_PATH
         for robot_dir in ROBOTS_PATH.iterdir():
-            if robot_dir.is_dir():
-                # Check if it's a valid HRDF directory by looking for meta.yaml
-                meta_file = robot_dir / "meta.yaml"
-                if meta_file.exists():
-                    # Use relative path from ROBOTS_PATH as robot name
-                    robot_name = robot_dir.relative_to(ROBOTS_PATH).as_posix()
-                    robot_names.append(robot_name)
+            if is_robot_path(robot_dir):
+                robot_names.append(robot_dir.relative_to(ROBOTS_PATH).as_posix())
         
         return sorted(robot_names)
     
@@ -73,86 +69,20 @@ class HumanoidRobot:
             raise ValueError("Robot name cannot be empty")
         
         robot_path = ROBOTS_PATH / robot_name
-        assert robot_path.exists(), f"Robot directory not found: {robot_path}"
-        assert robot_path.is_dir(), f"Robot path is not a directory: {robot_path}"
+        assert is_robot_path(robot_path), f"Robot directory not found: {robot_path}"
         
-        meta_file = robot_path / "meta.yaml"
-        assert meta_file.exists(), f"meta.yaml not found in robot directory: {robot_path}"
-        
-        # Load HRDF from directory
-        hrdf = HRDF.from_dir(robot_path)
-        
-        return cls(hrdf)
+        return cls(HRDF.from_dir(robot_path))
     
-    def generate_mjcf(self, output_path: Optional[Path] = None) -> str:
-        """
-        Generate MJCF file from the robot's HRDF description.
-        
-        Args:
-            output_path: Optional path to save the MJCF file. If None, 
-                        saves to default location in MJCF_ROBOTS_PATH
-                        
-        Returns:
-            String content of the generated MJCF file
-            
-        Raises:
-            RuntimeError: If MJCF generation fails
-        """
-        # Create MJCF generator from HRDF
+    def export_mjcf(self, output_path: Path, **kwargs) -> str:
         generator = MJCFHumanoidGenerator.from_hrdf(self.hrdf)
-        
-        # Generate the MJCF content
-        generator.generate()
-        mjcf_content = generator.xml_str
-        
-        # Determine output path
-        if output_path is None:
-            from hurodes import MJCF_ROBOTS_PATH
-            output_path = MJCF_ROBOTS_PATH / f"{self.robot_name}.xml"
-        
-        # Ensure output directory exists
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Save to file
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(mjcf_content)
-        
-        return mjcf_content
+        return generator.export(output_path, **kwargs)
     
-    def generate_urdf(self, output_path: Optional[Path] = None) -> str:
-        """
-        Generate URDF file from the robot's HRDF description.
-        
-        Args:
-            output_path: Optional path to save the URDF file. If None,
-                        saves to default location in URDF_ROBOTS_PATH
-                        
-        Returns:
-            String content of the generated URDF file
-            
-        Raises:
-            RuntimeError: If URDF generation fails
-        """
-        # Create URDF generator from HRDF
+    def export_urdf(self, output_path: Path, **kwargs) -> str:
         generator = URDFHumanoidGenerator.from_hrdf(self.hrdf)
-        
-        # Generate the URDF content
-        generator.generate()
-        urdf_content = generator.xml_str
-        
-        # Determine output path
-        if output_path is None:
-            from hurodes import URDF_ROBOTS_PATH
-            output_path = URDF_ROBOTS_PATH / f"{self.robot_name}.urdf"
-        
-        # Ensure output directory exists
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Save to file
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(urdf_content)
-        
-        return urdf_content
+        return generator.export(output_path, **kwargs)        
+
+    def __getattr__(self, name: str):
+        return getattr(self.hrdf, name)
     
     def __repr__(self) -> str:
         """Return string representation of the HumanoidRobot."""

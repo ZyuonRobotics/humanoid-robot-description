@@ -4,8 +4,7 @@ from pathlib import Path
 import mujoco
 import mujoco.viewer
 
-from hurodes.generators.mjcf_generator.mjcf_humanoid_generator import MJCFHumanoidGenerator
-from hurodes.generators.urdf_generator.urdf_humanoid_generator import URDFHumanoidGenerator
+from hurodes.humanoid_robot import HumanoidRobot
 from hurodes import ROBOTS_PATH
 
 @click.command()
@@ -13,14 +12,18 @@ from hurodes import ROBOTS_PATH
 @click.option("--format-type", type=str, default="mjcf", help="Format type", prompt="Format type")
 @click.option("--mujoco-urdf/--not-mujoco-urdf", type=bool, default=False, help="Whether to generate MuJoCo URDF")
 def main(robot_name, format_type, mujoco_urdf):
-    hrdf_path = Path(ROBOTS_PATH) / robot_name
-
+    # Create HumanoidRobot instance from robot name
+    robot = HumanoidRobot.from_name(robot_name)
+    
+    # Define output path
+    output_dir = Path(ROBOTS_PATH) / robot_name
+    
     if format_type == "mjcf":
-        generator = MJCFHumanoidGenerator.from_hrdf_path(hrdf_path)
-        xml_string = generator.export(hrdf_path / "robot.xml")
+        output_path = output_dir / "robot.xml"
+        xml_string = robot.export_mjcf(output_path)
     elif format_type == "urdf":
-        generator = URDFHumanoidGenerator.from_hrdf_path(hrdf_path)
-        xml_string = generator.export(hrdf_path / "robot.urdf", mujoco_urdf=mujoco_urdf)
+        output_path = output_dir / "robot.urdf"
+        xml_string = robot.export_urdf(output_path, mujoco_urdf=mujoco_urdf)
     else:
         raise ValueError(f"Invalid format type: {format_type}")
 
