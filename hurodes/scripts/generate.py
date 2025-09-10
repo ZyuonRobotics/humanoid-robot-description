@@ -19,10 +19,10 @@ def main(robot_name, format_type, mujoco_urdf):
     output_dir = Path(ROBOTS_PATH) / robot_name
     
     if format_type == "mjcf":
-        output_path = output_dir / "robot.xml"
+        output_path = output_dir / "exported" / "robot.xml"
         xml_string = robot.export_mjcf(output_path)
     elif format_type == "urdf":
-        output_path = output_dir / "robot.urdf"
+        output_path = output_dir / "exported" / "robot.urdf"
         xml_string = robot.export_urdf(output_path, mujoco_urdf=mujoco_urdf)
     else:
         raise ValueError(f"Invalid format type: {format_type}")

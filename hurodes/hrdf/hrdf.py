@@ -64,8 +64,12 @@ class HRDF:
                 res.append(info)
         
         if single:
-            assert len(res) == 1, f"Found multiple info with attr {attr_name} = {attr_value}"
-            return res[0]
+            if len(res) == 0:
+                raise ValueError(f"No info found with attr {attr_name} = {attr_value}")
+            elif len(res) > 1:
+                raise ValueError(f"Found multiple info with attr {attr_name} = {attr_value}")
+            else:
+                return res[0]
         else:
             return res
 
@@ -108,14 +112,6 @@ class HRDF:
             if simple_geom["name"].data == "":
                 simple_geom["name"].data = f"geom_{idx}"
 
-    def __getattr__(self, name: str):
-        for info_name in self.info_class_dict.keys():
-            if name == f"get_{info_name}_dict":
-                return partial(self.get_info_data_dict, info_name)
-            elif name == f"get_{info_name}_list":
-                return partial(self.get_info_data_list, info_name)
-        raise AttributeError(f"Attribute {name} not found")
-
     def get_info_data_dict(self, info_name: str, key_attr: str, value_attr: str):
         assert info_name in self.info_class_dict, f"Info name {info_name} not found"
         return {info[key_attr].data: info[value_attr].data for info in self.info_list[info_name]}
@@ -123,3 +119,31 @@ class HRDF:
     def get_info_data_list(self, info_name: str, attr: str):
         assert info_name in self.info_class_dict, f"Info name {info_name} not found"
         return [info[attr].data for info in self.info_list[info_name]]
+
+    @property
+    def armature_dict(self):
+        return self.get_info_data_dict("joint", "name", "armature")
+
+    @property
+    def peak_velocity_dict(self):
+        return self.get_info_data_dict("actuator", "joint_name", "peak_velocity")
+
+    @property
+    def peak_torque_dict(self):
+        return self.get_info_data_dict("actuator", "joint_name", "peak_torque")
+
+    @property
+    def p_gain_dict(self):
+        return self.get_info_data_dict("actuator", "joint_name", "p_gain")
+
+    @property
+    def d_gain_dict(self):
+        return self.get_info_data_dict("actuator", "joint_name", "d_gain")
+
+    @property
+    def joint_names(self):
+        return self.get_info_data_list("joint", "name")
+
+    @property
+    def base_height(self):
+        return float(self.info_list["body"][0]["pos"].data[2])

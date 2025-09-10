@@ -18,7 +18,7 @@ class BaseParser(ABC):
         """Parse the robot file and populate the HRDF structure"""
         pass
 
-    def save(self, max_faces=8000):
+    def save(self, max_faces=40000):
         """Save the parsed robot data using HRDF's save method"""
         self.hrdf.save(mesh_path=self.mesh_path, max_faces=max_faces)
 

@@ -81,9 +81,6 @@ class HumanoidRobot:
         generator = URDFHumanoidGenerator.from_hrdf(self.hrdf)
         return generator.export(output_path, **kwargs)        
 
-    def __getattr__(self, name: str):
-        return getattr(self.hrdf, name)
-    
     def __repr__(self) -> str:
         """Return string representation of the HumanoidRobot."""
         return f"HumanoidRobot(name='{self.robot_name}')"
