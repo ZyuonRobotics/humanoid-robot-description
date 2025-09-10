@@ -128,7 +128,7 @@ class InfoBase:
         return string
 
     def __getitem__(self, key: str):
-        assert key in self._dict, f"Attribute {key} not found in info"
+        assert key in self._dict, f"Attribute {key} not found in info {self.info_name}"
         return self._dict[key]
 
 def save_csv(info_list: List[InfoBase], save_path: str):

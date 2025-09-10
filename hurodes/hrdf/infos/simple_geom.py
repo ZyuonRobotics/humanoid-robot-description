@@ -4,8 +4,8 @@ import xml.etree.ElementTree as ET
 import mujoco
 
 from hurodes.hrdf.base.attribute import Position, Quaternion, Name, BodyName, AttributeBase
-from hurodes.hrdf.base.info import InfoBase, add_attr_to_elem
-from hurodes.utils.convert import str_quat2rpy, rpy2quat
+from hurodes.hrdf.base.info import InfoBase, add_attr_to_elem, extract_attr_from_elem
+from hurodes.utils.convert import str_quat2rpy, str_rpy2quat
 
 
 @dataclass
@@ -108,11 +108,24 @@ class SimpleGeomInfo(InfoBase):
 
     @classmethod
     def _specific_parse_urdf(cls, info_dict, elem, root_elem, **kwargs):
-        assert elem.tag in ["visual", "collision"], f"Expected visual or collision element, got {elem.tag}"
-        
-        import pdb
-        pdb.set_trace()
+        assert elem.tag in ["visual", "collision"], f"Expected link or joint element, got {elem.tag}"
+        body_name = kwargs["body_name"]
 
+        if elem.tag == "visual":
+            info_dict["contact_type"], info_dict["contact_affinity"] = 0, 0
+        else:
+            info_dict["contact_type"], info_dict["contact_affinity"] = 1, 1
+
+        rpy = extract_attr_from_elem(elem, ("origin", "rpy"))
+        info_dict["quat"] = [float(x) for x in str_rpy2quat(rpy).split()]
+        info_dict["pos"] = [float(x) for x in info_dict["pos"].split()]
+        
+        if "rgba" in info_dict and info_dict["rgba"] is not None:
+            info_dict["rgba"] = [float(x) for x in info_dict["rgba"].split()]
+
+        #TODO: parse geom type
+
+        info_dict["body_name"] = body_name
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
@@ -130,6 +143,14 @@ class SimpleGeomInfo(InfoBase):
 
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
         urdf_dict[("origin", "rpy")] = str_quat2rpy(extra_dict["quat"].to_string())
+        if extra_dict["type"].data == "sphere":
+            urdf_dict[("geometry", "sphere", "radius")] = extra_dict["size"].data[0]
+        elif extra_dict["type"].data == "cylinder":
+            urdf_dict[("geometry", "cylinder", "radius")] = extra_dict["size"].data[0]
+            urdf_dict[("geometry", "cylinder", "length")] = extra_dict["size"].data[1] * 2
+        else:
+            #TODO: generate other geom types
+            raise ValueError(f"Geom type: {extra_dict['type'].data} not supported yet")
         return urdf_dict
     
 

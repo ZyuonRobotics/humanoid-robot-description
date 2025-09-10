@@ -29,7 +29,6 @@ class ActuatorInfo(InfoBase):
         DGain,
         PGain,
         JointName,
-        Name,
     )
 
     @classmethod
@@ -37,7 +36,6 @@ class ActuatorInfo(InfoBase):
         assert part_model.ctrlrange[0] == - part_model.ctrlrange[1], f"Invalid ctrlrange: {part_model.ctrlrange}"
         info_dict["peak_torque"] = part_model.ctrlrange[1]
         info_dict["joint_name"] = part_spec.target.replace("-", "_")
-        info_dict["name"] = part_model.name.replace("-", "_")
         return info_dict
 
     @classmethod
@@ -46,7 +44,6 @@ class ActuatorInfo(InfoBase):
         
         joint_name = elem.get("name", "").replace("-", "_")
         info_dict["joint_name"] = joint_name
-        info_dict["name"] = f"{joint_name}_motor"
 
         return info_dict
 
@@ -56,6 +53,3 @@ class ActuatorInfo(InfoBase):
         mujoco_dict["ctrllimited"] = "true"
         return mujoco_dict
 
-    def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
-        del urdf_dict[('name',)]
-        return urdf_dict
