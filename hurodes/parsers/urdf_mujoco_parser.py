@@ -124,6 +124,8 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
         ET.indent(tree, space="  ", level=0)
         urdf_string = ET.tostring(self.root, encoding='unicode', method='xml')
         spec = mujoco.MjSpec.from_string(urdf_string) # type: ignore
+        mjcf_string = spec.to_xml()
+        spec = mujoco.MjSpec.from_string(mjcf_string) # type: ignore
         spec.option.timestep = self.timestep
         spec.compile()
         return spec
