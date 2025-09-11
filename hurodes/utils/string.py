@@ -29,3 +29,14 @@ def get_prefix_name(prefix, name):
     else:
         return f"{prefix}_{name}"
         
+def filter_str_list(str_list: list[str], pos_strings: list[str] = None, neg_strings: list[str] = None):
+    if pos_strings is None:
+        pos_strings = []
+    if neg_strings is None:
+        neg_strings = []
+    
+    res = []
+    for string in str_list:
+        if all(neg_s not in string for neg_s in neg_strings) and all(pos_s in string for pos_s in pos_strings):
+            res.append(string)
+    return res
