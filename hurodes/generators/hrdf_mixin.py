@@ -6,6 +6,8 @@ from hurodes.hrdf.hrdf import HRDF
 from hurodes.generators.generator_base import GeneratorBase
 from hurodes.hrdf.hrdf import SimulatorConfig
 from hurodes import ROBOTS_PATH
+from hurodes.hrdf.base.info import InfoList
+
 class HRDFMixin(ABC):
     """
     Mixin class for HRDF robot generators.
@@ -82,9 +84,9 @@ class HRDFMixin(ABC):
         assert self.hrdf is not None, "HRDF not loaded"
         return self.hrdf.body_parent_id
     
-    def info_list(self, info_type: str) -> list:
+    def info_list(self, info_type: str) -> InfoList:
         assert self.hrdf is not None, "HRDF not loaded"
-        return self.hrdf.info_list[info_type]
+        return self.hrdf.info_list_dict[info_type]
     
     @property
     def mesh_file_type(self) -> str:

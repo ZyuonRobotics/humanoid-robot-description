@@ -5,7 +5,7 @@ from functools import partial
 
 import yaml
 
-from hurodes.hrdf.base.info import InfoBase, load_csv, save_csv
+from hurodes.hrdf.base.info import InfoBase, InfoList
 from hurodes.hrdf.infos import INFO_CLASS_DICT
 from hurodes.utils.mesh import simplify_obj
 from hurodes import ROBOTS_PATH
@@ -23,16 +23,23 @@ class SimulatorConfig(BaseConfig):
     gravity: list[float] = [0, 0, -9.81]
     ground: GroundConfig = GroundConfig()
 
+class BodyNameConfig(BaseConfig):
+    torso_name: str = ""
+    hip_names: list[str] = []
+    knee_names: list[str] = []
+    foot_names: list[str] = []
+
 class HRDF:
     def __init__(self, info_class_dict: Optional[dict[str, type[InfoBase]]] = None, **kwargs):
         self.info_class_dict = info_class_dict or INFO_CLASS_DICT
-        self.info_list = {name: [] for name in self.info_class_dict.keys()}
+        self.info_list_dict = {name: InfoList(info_class) for name, info_class in self.info_class_dict.items()}
 
         self.robot_name = None
         self.body_parent_id: list[int] = []
         self.mesh_file_type = None
         self.simulator_config = None
-
+        self.body_name_config = BodyNameConfig()
+    
     @classmethod
     def from_dir(cls, hrdf_path: Path):
         assert hrdf_path.exists(), f"HRDF path not found: {hrdf_path}"
@@ -44,13 +51,14 @@ class HRDF:
             meta_info = yaml.safe_load(f)
         instance.robot_name = hrdf_path.relative_to(ROBOTS_PATH).as_posix()
         instance.body_parent_id = meta_info["body_parent_id"]
-        instance.mesh_file_type = meta_info["mesh_file_type"]
-        instance.simulator_config = SimulatorConfig.from_dict(meta_info["simulator_config"])
-    
+        instance.mesh_file_type = meta_info.get("mesh_file_type", None)
+        instance.simulator_config = SimulatorConfig.from_dict(meta_info.get("simulator_config", {}))
+        instance.body_name_config = BodyNameConfig.from_dict(meta_info.get("body_name_config", {}))
+
         for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             component_csv = Path(hrdf_path, f"{name}.csv")
             if component_csv.exists():
-                instance.info_list[name] = load_csv(str(component_csv), instance.info_class_dict[name])
+                instance.info_list_dict[name] = InfoList.from_csv(str(component_csv), instance.info_class_dict[name])
         return instance
 
     @property
@@ -58,20 +66,8 @@ class HRDF:
         return ROBOTS_PATH / self.robot_name
     
     def find_info_by_attr(self, attr_name: str, attr_value: str, info_name: str, single=False):
-        res = []
-        for info in self.info_list[info_name]:
-            if info[attr_name].data == attr_value:
-                res.append(info)
-        
-        if single:
-            if len(res) == 0:
-                raise ValueError(f"No info found with attr {attr_name} = {attr_value}")
-            elif len(res) > 1:
-                raise ValueError(f"Found multiple info with attr {attr_name} = {attr_value}")
-            else:
-                return res[0]
-        else:
-            return res
+        assert info_name in self.info_class_dict, f"Info name {info_name} not found"
+        return self.info_list_dict[info_name].find_info_by_attr(attr_name, attr_value, single)
 
     def save(self, mesh_path=None, max_faces=8000):
         """
@@ -88,7 +84,8 @@ class HRDF:
             for name, path in mesh_path.items():
                 new_mesh_file = self.hrdf_path / "meshes" / f"{name}.{self.mesh_file_type}"
                 new_mesh_file.parent.mkdir(parents=True, exist_ok=True)
-                simplify_obj(path, new_mesh_file, max_faces)
+                if path != new_mesh_file:
+                    simplify_obj(path, new_mesh_file, max_faces)
         
         # Save metadata
         meta_path = self.hrdf_path / "meta.yaml"
@@ -96,29 +93,29 @@ class HRDF:
         meta_info = {
             "body_parent_id": self.body_parent_id,
             "mesh_file_type": self.mesh_file_type,
-            "simulator_config": self.simulator_config.to_dict()
+            "simulator_config": self.simulator_config.to_dict(),
+            "body_name_config": self.body_name_config.to_dict()
         }
         with open(meta_path, "w", encoding='utf-8') as yaml_file:
             yaml.dump(meta_info, yaml_file, default_flow_style=False, allow_unicode=True, indent=2)
         
         # Save component CSV files
         for info_name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
-            info_list = self.info_list[info_name]
-            if len(info_list) > 0:
-                save_csv(info_list, self.hrdf_path / f"{info_name}.csv")
+            if len(self.info_list_dict[info_name]) > 0:
+                self.info_list_dict[info_name].save_csv(self.hrdf_path / f"{info_name}.csv")
 
     def fix_simple_geom(self):
-        for idx, simple_geom in enumerate(self.info_list["simple_geom"]):
+        for idx, simple_geom in enumerate(self.info_list_dict["simple_geom"]):
             if simple_geom["name"].data == "":
                 simple_geom["name"].data = f"geom_{idx}"
 
     def get_info_data_dict(self, info_name: str, key_attr: str, value_attr: str):
         assert info_name in self.info_class_dict, f"Info name {info_name} not found"
-        return {info[key_attr].data: info[value_attr].data for info in self.info_list[info_name]}
+        return self.info_list_dict[info_name].get_data_dict(key_attr, value_attr)
 
     def get_info_data_list(self, info_name: str, attr: str):
         assert info_name in self.info_class_dict, f"Info name {info_name} not found"
-        return [info[attr].data for info in self.info_list[info_name]]
+        return self.info_list_dict[info_name].get_data_list(attr)
 
     @property
     def armature_dict(self):
@@ -146,4 +143,4 @@ class HRDF:
 
     @property
     def base_height(self):
-        return float(self.info_list["body"][0]["pos"].data[2])
+        return float(self.info_list_dict["body"][0]["pos"].data[2])

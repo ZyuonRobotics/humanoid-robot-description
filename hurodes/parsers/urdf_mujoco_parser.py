@@ -116,7 +116,7 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
                     actuator_info_dict["peak_velocity"] = float(limit.attrib['velocity'])
 
             actuator_info = ActuatorInfo.from_dict(actuator_info_dict)
-            self.hrdf.info_list["actuator"].append(actuator_info)
+            self.hrdf.info_list_dict["actuator"].append(actuator_info)
 
     @property
     def mujoco_spec(self):

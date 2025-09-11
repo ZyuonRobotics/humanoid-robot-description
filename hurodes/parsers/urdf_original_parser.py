@@ -95,15 +95,15 @@ class HumanoidURDFOriginalParser(BaseParser):
     def collect_body_info(self):
         for link in self.root.findall("link"):
             body_info = BodyInfo.from_urdf(link, self.root, link_nodes=self.link_nodes)
-            self.hrdf.info_list["body"].append(body_info)
+            self.hrdf.info_list_dict["body"].append(body_info)
 
             for geom in link.findall("visual") + link.findall("collision"):
                 if geom.find("geometry").find("mesh") is not None:
                     mesh_info = MeshInfo.from_urdf(geom, self.root, body_name=body_info["name"].data)
-                    self.hrdf.info_list["mesh"].append(mesh_info)
+                    self.hrdf.info_list_dict["mesh"].append(mesh_info)
                 else:
                     simple_geom_info = SimpleGeomInfo.from_urdf(geom, self.root, body_name=body_info["name"].data)
-                    self.hrdf.info_list["simple_geom"].append(simple_geom_info)
+                    self.hrdf.info_list_dict["simple_geom"].append(simple_geom_info)
 
     def collect_joint_info(self):
         for joint in self.root.findall("joint"):
@@ -111,10 +111,10 @@ class HumanoidURDFOriginalParser(BaseParser):
                 pass
             elif joint.get("type") == "revolute":
                 joint_info = JointInfo.from_urdf(joint, self.root)
-                self.hrdf.info_list["joint"].append(joint_info)
+                self.hrdf.info_list_dict["joint"].append(joint_info)
 
                 actuator_info = ActuatorInfo.from_urdf(joint, self.root)
-                self.hrdf.info_list["actuator"].append(actuator_info)
+                self.hrdf.info_list_dict["actuator"].append(actuator_info)
             else:
                 raise ValueError(f"Invalid joint type: {joint.get('type')}")
 
@@ -160,10 +160,12 @@ class HumanoidURDFOriginalParser(BaseParser):
 
         self.hrdf.simulator_config = SimulatorConfig(timestep=self.timestep)
 
+        self.parse_body_name()
+
     def print_body_tree(self, colorful=False):
         """Print the body tree structure"""
         print("URDF Body Tree:")
-        for i, body_info in enumerate(self.hrdf.info_list["body"]):
+        for i, body_info in enumerate(self.hrdf.info_list_dict["body"]):
             parent_id = self.hrdf.body_parent_id[i] if i < len(self.hrdf.body_parent_id) else -1
             indent = "  " * (self._get_depth(i, self.hrdf.body_parent_id))
             print(f"{indent}{body_info['name'].data} (parent: {parent_id})")

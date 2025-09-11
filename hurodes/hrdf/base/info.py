@@ -131,17 +131,58 @@ class InfoBase:
         assert key in self._dict, f"Attribute {key} not found in info {self.info_name}"
         return self._dict[key]
 
-def save_csv(info_list: List[InfoBase], save_path: str):
-    assert len(info_list) > 0, "info_list is empty"
-    df_list = [info.to_flat_dict() for info in info_list]
+class InfoList:
+    def __init__(self, info_class: Type[InfoBase], infos: List[InfoBase] = None):
+        self.info_class = info_class
+        self.infos = infos or []
+
+    def append(self, info: InfoBase):
+        self.infos.append(info)
+
+    def get_data_list(self, attr_name: str):
+        return [info[attr_name].data for info in self.infos]
+
+    def get_data_dict(self, key_attr: str, value_attr: str):
+        return {info[key_attr].data: info[value_attr].data for info in self.infos}
+
+    def find_info_by_attr(self, attr_name: str, attr_value: str, single=False):
+        res = []
+        for info in self.infos:
+            if info[attr_name].data == attr_value:
+                res.append(info)
         
-    df = pd.DataFrame(df_list)
-    df.to_csv(save_path, index=False)
+        if single:
+            if len(res) == 0:
+                raise ValueError(f"No info found with attr {attr_name} = {attr_value}")
+            elif len(res) > 1:
+                raise ValueError(f"Found multiple info with attr {attr_name} = {attr_value}")
+            else:
+                return res[0]
+        else:
+            return res
 
+    def __len__(self):
+        return len(self.infos)
 
-def load_csv(csv_path: str, info_class: Type[InfoBase]) -> List[InfoBase]:
-    df = pd.read_csv(csv_path)
-    df = df.replace({np.nan: None})
-    df_list = df.to_dict('records')
-    
-    return [info_class.from_flat_dict(data_dict) for data_dict in df_list]
+    def __iter__(self):
+        return iter(self.infos)
+
+    def __getitem__(self, index: int):
+        return self.infos[index]
+
+    def save_csv(self, save_path: str):
+        assert len(self) > 0, "info_list is empty"
+        df_list = [info.to_flat_dict() for info in self.infos]
+            
+        df = pd.DataFrame(df_list)
+        df.to_csv(save_path, index=False)
+
+    @classmethod
+    def from_csv(cls, csv_path: str, info_class: Type[InfoBase]):
+        df = pd.read_csv(csv_path)
+        df = df.replace({np.nan: None})
+
+        df_list = df.to_dict('records')
+        infos = [info_class.from_flat_dict(data_dict) for data_dict in df_list]
+        
+        return cls(info_class, infos=infos)

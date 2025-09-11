@@ -36,18 +36,18 @@ class HumanoidMJCFParser(BaseParser):
         for body_idx in range(1, model.nbody):
             body = model.body(body_idx)
             body_info = BodyInfo.from_mujoco(body, spec.bodies[body_idx])
-            self.hrdf.info_list["body"].append(body_info)
+            self.hrdf.info_list_dict["body"].append(body_info)
 
     def collect_joint_info(self, model, spec):
         assert model.joint(0).type[0] == 0, "First joint should be free."
         for jnt_idx in range(1, model.njnt):
             joint_info = JointInfo.from_mujoco(model.joint(jnt_idx), spec.joints[jnt_idx], whole_spec=spec)
-            self.hrdf.info_list["joint"].append(joint_info)
+            self.hrdf.info_list_dict["joint"].append(joint_info)
 
     def collect_actuator_info(self, model, spec):
         for actuator_idx in range(model.nu):
             actuator_info = ActuatorInfo.from_mujoco(model.actuator(actuator_idx), spec.actuators[actuator_idx])
-            self.hrdf.info_list["actuator"].append(actuator_info)
+            self.hrdf.info_list_dict["actuator"].append(actuator_info)
 
     def collect_geom_info(self, model, spec):
         ground_dict = None
@@ -67,10 +67,10 @@ class HumanoidMJCFParser(BaseParser):
 
             if int(geom_model.type) == MESH_TYPE:
                 mesh_info = MeshInfo.from_mujoco(geom_model, geom_spec, whole_spec=spec)
-                self.hrdf.info_list["mesh"].append(mesh_info)
+                self.hrdf.info_list_dict["mesh"].append(mesh_info)
             else:
                 geom_info = SimpleGeomInfo.from_mujoco(geom_model, geom_spec, whole_spec=spec)
-                self.hrdf.info_list["simple_geom"].append(geom_info)
+                self.hrdf.info_list_dict["simple_geom"].append(geom_info)
 
         if ground_dict is None:
             self.simulator_dict["ground"] = {}
@@ -110,3 +110,5 @@ class HumanoidMJCFParser(BaseParser):
         self.collect_mesh_path(spec)
         self.hrdf.fix_simple_geom()
         self.hrdf.simulator_config = SimulatorConfig.from_dict(self.simulator_dict)
+
+        self.parse_body_name()
