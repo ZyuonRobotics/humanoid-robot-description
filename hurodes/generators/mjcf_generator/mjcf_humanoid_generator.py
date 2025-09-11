@@ -77,7 +77,7 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
         self.get_elem("compiler").attrib = {
             "angle": "radian",
             "autolimits": "true",
-            "meshdir": str(self.mesh_directory)
+            "meshdir": "../meshes"
         }
     
     def add_mesh(self, prefix=None):

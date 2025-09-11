@@ -164,7 +164,7 @@ class GeneratorBase(ABC):
         
         Args:
             file_path: Optional path to save the output file
-            
+        
         Returns:
             The formatted string representation of the robot description
         """

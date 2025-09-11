@@ -30,7 +30,7 @@ def main(robot_name, format_type, mujoco_urdf):
     if format_type == "mjcf" or (mujoco_urdf and format_type == "urdf"):
         # Only apply mesh directory replacement for MJCF
         xml_string = xml_string.replace(
-            'meshdir="meshes"', 
+            'meshdir="../meshes"', 
             f'meshdir="{Path(ROBOTS_PATH) / robot_name / "meshes"}"'
         )
 

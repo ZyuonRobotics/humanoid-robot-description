@@ -106,7 +106,7 @@ class URDFHumanoidGenerator(HRDFMixin, URDFGeneratorBase):
         """
         mujoco_elem = ET.SubElement(self.xml_root, "mujoco")
         ET.SubElement(mujoco_elem, 'compiler', attrib={
-            'meshdir': str(self.mesh_directory),
+            'meshdir': "../meshes",
             "balanceinertia": "true",
             "discardvisual": "false"
         })

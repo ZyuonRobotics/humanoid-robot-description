@@ -49,35 +49,28 @@ class HumanoidRobot:
                 robot_names.append(robot_dir.relative_to(ROBOTS_PATH).as_posix())
         
         return sorted(robot_names)
+
+    @property
+    def robot_path(self) -> Path:
+        return ROBOTS_PATH / self.robot_name
+
+    @property
+    def exported_path(self) -> Path:
+        return self.robot_path / "exported"
     
     @classmethod
     def from_name(cls, robot_name: str) -> 'HumanoidRobot':
-        """
-        Create a HumanoidRobot instance from a robot name.
-        
-        Args:
-            robot_name: Name of the robot (relative path from robots directory)
-            
-        Returns:
-            HumanoidRobot instance
-            
-        Raises:
-            FileNotFoundError: If the robot directory or meta.yaml doesn't exist
-            ValueError: If the robot name is invalid
-        """
-        if not robot_name:
-            raise ValueError("Robot name cannot be empty")
-        
-        robot_path = ROBOTS_PATH / robot_name
-        assert is_robot_path(robot_path), f"Robot directory not found: {robot_path}"
-        
-        return cls(HRDF.from_dir(robot_path))
+        return cls(HRDF.from_dir(ROBOTS_PATH / robot_name))
     
-    def export_mjcf(self, output_path: Path, **kwargs) -> str:
+    def export_mjcf(self, output_path: Optional[Path] = None, **kwargs) -> str:
+        if output_path is None:
+            output_path = self.exported_path / "robot.xml"
         generator = MJCFHumanoidGenerator.from_hrdf(self.hrdf)
         return generator.export(output_path, **kwargs)
     
-    def export_urdf(self, output_path: Path, **kwargs) -> str:
+    def export_urdf(self, output_path: Optional[Path] = None, **kwargs) -> str:
+        if output_path is None:
+            output_path = self.exported_path / "robot.urdf"
         generator = URDFHumanoidGenerator.from_hrdf(self.hrdf)
         return generator.export(output_path, **kwargs)        
 

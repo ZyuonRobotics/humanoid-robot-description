@@ -148,6 +148,8 @@ class SimpleGeomInfo(InfoBase):
         elif extra_dict["type"].data == "cylinder":
             urdf_dict[("geometry", "cylinder", "radius")] = extra_dict["size"].data[0]
             urdf_dict[("geometry", "cylinder", "length")] = extra_dict["size"].data[1] * 2
+        elif extra_dict["type"].data == "box":
+            urdf_dict[("geometry", "box", "size")] = " ".join(map(str, extra_dict["size"].data * 2))
         else:
             #TODO: generate other geom types
             raise ValueError(f"Geom type: {extra_dict['type'].data} not supported yet")
