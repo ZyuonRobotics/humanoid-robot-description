@@ -28,8 +28,8 @@ class HumanoidRobot:
         """
         assert isinstance(hrdf, HRDF), "hrdf must be an instance of HRDF"
         
-        self.hrdf = hrdf
-        self.robot_name = hrdf.robot_name
+        self.hrdf: HRDF = hrdf
+        self.robot_name: str = hrdf.robot_name
     
     @classmethod
     def list_robots(cls) -> List[str]:

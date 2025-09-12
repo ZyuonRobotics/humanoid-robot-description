@@ -144,3 +144,19 @@ class HRDF:
     @property
     def base_height(self):
         return float(self.info_list_dict["body"][0]["pos"].data[2])
+
+    @property
+    def hip_names(self):
+        return self.body_name_config.hip_names
+
+    @property
+    def knee_names(self):
+        return self.body_name_config.knee_names
+
+    @property
+    def foot_names(self):
+        return self.body_name_config.foot_names
+
+    @property
+    def torso_name(self):
+        return self.body_name_config.torso_name
