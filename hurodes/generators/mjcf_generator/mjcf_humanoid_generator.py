@@ -123,6 +123,35 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
             actuator_info = self.find_info_by_attr("joint_name", joint_info["name"].data, "actuator", single=True)
             ET.SubElement(actuator_elem, 'motor', attrib=actuator_info.to_mujoco_dict(prefix=prefix))
 
+    def add_imu(self, prefix=None):
+        """
+        Add IMUs for bodies.
+        
+        Args:
+            prefix: Optional prefix for IMU names
+        """
+        for imu_config in self.imu_configs:
+            found_body = False
+            for body_elem in self.get_elem("worldbody").findall("body"):
+                if body_elem.attrib["name"] == get_prefix_name(prefix, imu_config.body_name):
+                    ET.SubElement(body_elem, 'site', attrib={
+                        "name": get_prefix_name(prefix, imu_config.name),
+                        "pos": " ".join([str(x) for x in imu_config.position]),
+                        "quat": " ".join([str(x) for x in imu_config.orientation]),
+                    })
+                    found_body = True
+                    break
+            assert found_body, f"Body {imu_config.body_name} not found in the MJCF file."
+            sensor_elem = self.get_elem("sensor")
+            for value in imu_config.value:
+                sensor_name = {"linacc": "framelinacc", "angvel": "frameangvel", "quat": "framequat"}[value]
+                ET.SubElement(sensor_elem, sensor_name, attrib={
+                    "name": get_prefix_name(prefix, f"{imu_config.name}_{value}"),
+                    "objtype": "site",
+                    "objname": get_prefix_name(prefix, imu_config.name),
+                })
+
+
     def _generate(self, prefix=None, add_scene=True):
         """
         Generate the complete MJCF for the humanoid robot.
@@ -135,5 +164,6 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
         self.add_mesh(prefix=prefix)
         self.recursive_generate_body(prefix=prefix)
         self.add_actuator(prefix=prefix)
+        self.add_imu(prefix=prefix)
         if add_scene:
             self.add_scene()

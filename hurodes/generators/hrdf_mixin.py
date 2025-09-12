@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING
 
 from hurodes.hrdf.hrdf import HRDF
 from hurodes.generators.generator_base import GeneratorBase
-from hurodes.hrdf.hrdf import SimulatorConfig
+from hurodes.hrdf.hrdf import SimulatorConfig, IMUConfig
 from hurodes import ROBOTS_PATH
 from hurodes.hrdf.base.info import InfoList
 
@@ -99,3 +99,8 @@ class HRDFMixin(ABC):
         if not mesh_file.exists():
             raise FileNotFoundError(f"Mesh file {mesh_file} does not exist")
         return mesh_file 
+    
+    @property
+    def imu_configs(self) -> list[IMUConfig]:
+        assert self.hrdf is not None, "HRDF not loaded"
+        return self.hrdf.imu_configs

@@ -1,7 +1,7 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
 
-from hurodes.hrdf.hrdf import HRDF
+from hurodes.hrdf.hrdf import HRDF, IMUConfig
 from hurodes.utils.string import filter_str_list
 
 class BaseParser(ABC):
@@ -40,3 +40,15 @@ class BaseParser(ABC):
         torso_body_names = filter_str_list(body_names, pos_strings=["torso"])
         if len(torso_body_names) == 1:
             self.hrdf.body_name_config.torso_name = torso_body_names[0]
+
+    def parse_imu(self):
+        body_names = self.hrdf.info_list_dict["body"].get_data_list("name")
+        imu_config = IMUConfig(
+            name=f"{body_names[0]}_imu",
+            position=[0, 0, 0],
+            orientation=[1, 0, 0, 0],
+            body_name=body_names[0],
+            value=["linacc", "angvel", "quat"]
+        )
+        imu_config.body_name = body_names[0]
+        self.hrdf.imu_configs.append(imu_config)

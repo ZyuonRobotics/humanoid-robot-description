@@ -29,6 +29,13 @@ class BodyNameConfig(BaseConfig):
     knee_names: list[str] = []
     foot_names: list[str] = []
 
+class IMUConfig(BaseConfig):
+    position: list[float] = [0, 0, 0]
+    orientation: list[float] = [1, 0, 0, 0]
+    name: str = ""
+    body_name: str = ""
+    value: list[str] = []
+
 class HRDF:
     def __init__(self, info_class_dict: Optional[dict[str, type[InfoBase]]] = None, **kwargs):
         self.info_class_dict = info_class_dict or INFO_CLASS_DICT
@@ -39,6 +46,7 @@ class HRDF:
         self.mesh_file_type = None
         self.simulator_config = None
         self.body_name_config = BodyNameConfig()
+        self.imu_configs = []
     
     @classmethod
     def from_dir(cls, hrdf_path: Path):
@@ -54,7 +62,7 @@ class HRDF:
         instance.mesh_file_type = meta_info.get("mesh_file_type", None)
         instance.simulator_config = SimulatorConfig.from_dict(meta_info.get("simulator_config", {}))
         instance.body_name_config = BodyNameConfig.from_dict(meta_info.get("body_name_config", {}))
-
+        instance.imu_configs = [IMUConfig.from_dict(imu_config) for imu_config in meta_info.get("imu_configs", [])]
         for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             component_csv = Path(hrdf_path, f"{name}.csv")
             if component_csv.exists():
@@ -94,7 +102,8 @@ class HRDF:
             "body_parent_id": self.body_parent_id,
             "mesh_file_type": self.mesh_file_type,
             "simulator_config": self.simulator_config.to_dict(),
-            "body_name_config": self.body_name_config.to_dict()
+            "body_name_config": self.body_name_config.to_dict(),
+            "imu_configs": [imu_config.to_dict() for imu_config in self.imu_configs]
         }
         with open(meta_path, "w", encoding='utf-8') as yaml_file:
             yaml.dump(meta_info, yaml_file, default_flow_style=False, allow_unicode=True, indent=2)
@@ -160,3 +169,7 @@ class HRDF:
     @property
     def torso_name(self):
         return self.body_name_config.torso_name
+    
+    @property
+    def imu_dict(self):
+        return {imu_config.name: imu_config.value for imu_config in self.imu_configs}

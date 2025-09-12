@@ -161,6 +161,7 @@ class HumanoidURDFOriginalParser(BaseParser):
         self.hrdf.simulator_config = SimulatorConfig(timestep=self.timestep)
 
         self.parse_body_name()
+        self.parse_imu()
 
     def print_body_tree(self, colorful=False):
         """Print the body tree structure"""

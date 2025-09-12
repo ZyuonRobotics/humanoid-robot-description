@@ -112,3 +112,4 @@ class HumanoidMJCFParser(BaseParser):
         self.hrdf.simulator_config = SimulatorConfig.from_dict(self.simulator_dict)
 
         self.parse_body_name()
+        self.parse_imu()
