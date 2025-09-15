@@ -4,6 +4,11 @@ from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorB
 from hurodes.generators.hrdf_mixin import HRDFMixin
 from hurodes.utils.string import get_prefix_name
 
+MUJOCO_SENSOR_NAME = {
+    "linacc": "accelerometer",
+    "angvel": "gyro",
+    "quat": "framequat"
+}
 
 class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
     """
@@ -144,12 +149,15 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
             assert found_body, f"Body {imu_config.body_name} not found in the MJCF file."
             sensor_elem = self.get_elem("sensor")
             for value in imu_config.value:
-                sensor_name = {"linacc": "framelinacc", "angvel": "frameangvel", "quat": "framequat"}[value]
-                ET.SubElement(sensor_elem, sensor_name, attrib={
-                    "name": get_prefix_name(prefix, f"{imu_config.name}_{value}"),
-                    "objtype": "site",
-                    "objname": get_prefix_name(prefix, imu_config.name),
-                })
+                sensor_name = MUJOCO_SENSOR_NAME[value]
+                site_name = get_prefix_name(prefix, imu_config.name)
+                attrib = {"name": get_prefix_name(prefix, f"{imu_config.name}_{value}")}
+                if sensor_name == "framequat":
+                    attrib["objtype"] = "site"
+                    attrib["objname"] = site_name
+                else:
+                    attrib["site"] = site_name
+                ET.SubElement(sensor_elem, sensor_name, attrib)
 
 
     def _generate(self, prefix=None, add_scene=True):
