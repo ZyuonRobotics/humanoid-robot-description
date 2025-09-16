@@ -1,0 +1,1 @@
+from hurodes.hrdf.infos import INFO_CLASS_DICT
