@@ -8,7 +8,7 @@ def get_long_description():
 
 setup(
     name="hurodes",
-    version="0.0.2",  # 也可以从 hurodes/__init__.py 动态获取
+    version="0.1.0",  # 也可以从 hurodes/__init__.py 动态获取
     description="hurodes (Humanoid Robot Description) is a Python toolkit for describing, converting, and processing humanoid robot models.",
     long_description=get_long_description(),
     long_description_content_type='text/markdown',
