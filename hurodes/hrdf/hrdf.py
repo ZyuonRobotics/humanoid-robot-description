@@ -129,6 +129,18 @@ class HRDF:
     @property
     def armature_dict(self):
         return self.get_info_data_dict("joint", "name", "armature")
+    
+    @property
+    def static_friction_dict(self):
+        return self.get_info_data_dict("joint", "name", "static_friction")
+
+    @property
+    def dynamic_friction_dict(self):
+        return self.get_info_data_dict("joint", "name", "dynamic_friction")
+
+    @property
+    def viscous_friction_dict(self):
+        return self.get_info_data_dict("joint", "name", "viscous_friction")
 
     @property
     def peak_velocity_dict(self):
