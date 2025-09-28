@@ -77,12 +77,12 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
                 body_elem = self.generate_single_body_xml(parent, child_index, prefix=prefix)
                 self.recursive_generate_body(body_elem, child_index, prefix=prefix)
 
-    def add_compiler(self):
+    def add_compiler(self, relative_mesh_path=True):
         """Add compiler configuration with mesh directory."""
         self.get_elem("compiler").attrib = {
             "angle": "radian",
             "autolimits": "true",
-            "meshdir": "../meshes"
+            "meshdir": "../meshes" if relative_mesh_path else str(self.mesh_directory)
         }
     
     def add_mesh(self, prefix=None):
@@ -160,7 +160,7 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
                 ET.SubElement(sensor_elem, sensor_name, attrib)
 
 
-    def _generate(self, prefix=None, add_scene=True):
+    def _generate(self, prefix=None, add_scene=True, relative_mesh_path=True):
         """
         Generate the complete MJCF for the humanoid robot.
         
@@ -168,7 +168,7 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
             prefix: Optional prefix for element names
             add_scene: Whether to add scene elements
         """
-        self.add_compiler()
+        self.add_compiler(relative_mesh_path=relative_mesh_path)
         self.add_mesh(prefix=prefix)
         self.recursive_generate_body(prefix=prefix)
         self.add_actuator(prefix=prefix)

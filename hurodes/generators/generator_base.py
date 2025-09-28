@@ -177,8 +177,6 @@ class GeneratorBase(ABC):
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(self.xml_str)
             print(f"Exported to {file_path}")
-        
-        return self.xml_str
     
     @property
     def element_tree_str(self) -> str:

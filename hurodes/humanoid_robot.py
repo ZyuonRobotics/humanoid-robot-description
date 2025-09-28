@@ -61,18 +61,22 @@ class HumanoidRobot:
     @classmethod
     def from_name(cls, robot_name: str) -> 'HumanoidRobot':
         return cls(HRDF.from_dir(ROBOTS_PATH / robot_name))
+
+    def build_mjcf_generator(self) -> MJCFHumanoidGenerator:
+        return MJCFHumanoidGenerator.from_hrdf(self.hrdf)
+
+    def build_urdf_generator(self) -> URDFHumanoidGenerator:
+        return URDFHumanoidGenerator.from_hrdf(self.hrdf)
     
-    def export_mjcf(self, output_path: Optional[Path] = None, **kwargs) -> str:
+    def export_mjcf(self, output_path: Optional[Path] = None, **kwargs):
         if output_path is None:
             output_path = self.exported_path / "robot.xml"
-        generator = MJCFHumanoidGenerator.from_hrdf(self.hrdf)
-        return generator.export(output_path, **kwargs)
+        self.build_mjcf_generator().export(output_path, **kwargs)
     
-    def export_urdf(self, output_path: Optional[Path] = None, **kwargs) -> str:
+    def export_urdf(self, output_path: Optional[Path] = None, **kwargs):
         if output_path is None:
             output_path = self.exported_path / "robot.urdf"
-        generator = URDFHumanoidGenerator.from_hrdf(self.hrdf)
-        return generator.export(output_path, **kwargs)        
+        self.build_urdf_generator().export(output_path, **kwargs)
 
     def __repr__(self) -> str:
         """Return string representation of the HumanoidRobot."""

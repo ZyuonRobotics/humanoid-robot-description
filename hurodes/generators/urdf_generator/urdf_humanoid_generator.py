@@ -23,24 +23,24 @@ class URDFHumanoidGenerator(HRDFMixin, URDFGeneratorBase):
         """
         super().__init__()
 
-    def _generate(self, mujoco_urdf=False, **kwargs):
+    def _generate(self, add_mujoco_tag=False, relative_mesh_path=True):
         """
         Generate the complete URDF for the humanoid robot.
         
         This method creates links and joints from the HRDF data.
         """
-        if mujoco_urdf:
-            self._generate_mujoco_elem()
-        self._generate_links(mujoco_urdf)
-        self._generate_joints(mujoco_urdf)
+        if add_mujoco_tag:
+            self._generate_mujoco_elem(relative_mesh_path=relative_mesh_path)
+        self._generate_links(add_mujoco_tag)
+        self._generate_joints(add_mujoco_tag)
         
-    def _generate_links(self, mujoco_urdf=False) -> dict:
+    def _generate_links(self, add_mujoco_tag=False) -> dict:
         """
         Generate all link elements.
         """
         body_info_list = self.info_list("body")
 
-        if mujoco_urdf:
+        if add_mujoco_tag:
             for body_info in body_info_list:
                 if body_info["id"].data == 0:
                     link_elem = ET.SubElement(self.xml_root, "link", attrib={"name": "world"})
@@ -62,13 +62,13 @@ class URDFHumanoidGenerator(HRDFMixin, URDFGeneratorBase):
             for mesh_info in mesh_infos:
                 mesh_info.to_urdf_elem(link_elem)
                 
-    def _generate_joints(self, mujoco_urdf=False) -> dict:
+    def _generate_joints(self, add_mujoco_tag=False) -> dict:
         """
         Generate all joint elements.
         """
         joint_info_list = self.info_list("joint")
 
-        if mujoco_urdf:
+        if add_mujoco_tag:
             for body_info in self.info_list("body"):
                 if body_info["id"].data == 0:
                     joint_elem = ET.SubElement(
@@ -100,13 +100,13 @@ class URDFHumanoidGenerator(HRDFMixin, URDFGeneratorBase):
             actuator_info = self.find_info_by_attr("joint_name", joint_name, "actuator", single=True)
             actuator_info.to_urdf_elem(joint_elem)
 
-    def _generate_mujoco_elem(self):
+    def _generate_mujoco_elem(self, relative_mesh_path=True):
         """
         Generate the MuJoCo element.
         """
         mujoco_elem = ET.SubElement(self.xml_root, "mujoco")
         ET.SubElement(mujoco_elem, 'compiler', attrib={
-            'meshdir': "../meshes",
+            'meshdir': "../meshes" if relative_mesh_path else str(self.mesh_directory),
             "balanceinertia": "true",
             "discardvisual": "false"
         })

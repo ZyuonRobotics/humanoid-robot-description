@@ -61,19 +61,6 @@ def test_add_scene_and_build():
     assert generator.get_elem("asset") is not None
     assert generator.get_elem("worldbody") is not None
 
-
-def test_export_returns_string(tmp_path):
-    generator = MJCFGeneratorBaseStub()
-    generator.load()
-    xml_str = generator.export()
-    assert isinstance(xml_str, str)
-    # Test export to file
-    file_path = tmp_path / "test.xml"
-    xml_str2 = generator.export(file_path)
-    assert file_path.exists()
-    assert xml_str2 == file_path.read_text()
-
-
 def test_all_body_names_and_body_tree_str():
     generator = MJCFGeneratorBaseStub()
     worldbody = generator.get_elem("worldbody")

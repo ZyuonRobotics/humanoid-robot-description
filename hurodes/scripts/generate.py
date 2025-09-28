@@ -10,8 +10,9 @@ from hurodes import ROBOTS_PATH
 @click.command()
 @click.argument("robot-name", type=str)
 @click.option("--format-type", type=str, default="mjcf", help="Format type", prompt="Format type")
-@click.option("--mujoco-urdf/--not-mujoco-urdf", type=bool, default=False, help="Whether to generate MuJoCo URDF")
-def main(robot_name, format_type, mujoco_urdf):
+@click.option("--add-mujoco-tag/--not-add-mujoco-tag", type=bool, default=False, help="Whether to add MuJoCo tag to URDF")
+@click.option("--view/--not-view", type=bool, default=True, help="Whether to view the model")
+def main(robot_name, format_type, add_mujoco_tag, view):
     # Create HumanoidRobot instance from robot name
     robot = HumanoidRobot.from_name(robot_name)
     
@@ -20,22 +21,24 @@ def main(robot_name, format_type, mujoco_urdf):
     
     if format_type == "mjcf":
         output_path = output_dir / "exported" / "robot.xml"
-        xml_string = robot.export_mjcf(output_path)
+        robot.export_mjcf(output_path)
     elif format_type == "urdf":
         output_path = output_dir / "exported" / "robot.urdf"
-        xml_string = robot.export_urdf(output_path, mujoco_urdf=mujoco_urdf)
+        robot.export_urdf(output_path, add_mujoco_tag=add_mujoco_tag)
     else:
         raise ValueError(f"Invalid format type: {format_type}")
 
-    if format_type == "mjcf" or (mujoco_urdf and format_type == "urdf"):
-        # Only apply mesh directory replacement for MJCF
-        xml_string = xml_string.replace(
-            'meshdir="../meshes"', 
-            f'meshdir="{Path(ROBOTS_PATH) / robot_name / "meshes"}"'
-        )
-
-        # Launch MuJoCo viewer for MJCF format
-        m = mujoco.MjModel.from_xml_string(xml_string) # type: ignore
+    if view:
+        if format_type == "mjcf":
+            generator = robot.build_mjcf_generator()
+            generator.generate(relative_mesh_path=False)
+        elif format_type == "urdf":
+            assert add_mujoco_tag, "MuJoCo tag is required to view URDF in MuJoCo viewer"
+            generator = robot.build_urdf_generator()
+            generator.generate(relative_mesh_path=False, add_mujoco_tag=add_mujoco_tag)
+        else:
+            raise ValueError(f"Invalid format type: {format_type}")
+        m = mujoco.MjModel.from_xml_string(generator.xml_str) # type: ignore
         d = mujoco.MjData(m) # type: ignore
         with mujoco.viewer.launch_passive(m, d) as viewer:
             while viewer.is_running():
