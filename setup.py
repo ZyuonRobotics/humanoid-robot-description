@@ -1,14 +1,21 @@
 from setuptools import setup, find_packages
 import os
 
-# 读取 README.md 作为长描述
 def get_long_description():
     with open('README.md', encoding='utf-8') as f:
         return f.read()
 
+def get_version():
+    version_file = os.path.join(os.path.dirname(__file__), 'hurodes', '__init__.py')
+    with open(version_file, encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('VERSION'):
+                return line.split('=')[1].strip().strip('"').strip("'")
+    raise RuntimeError("Can't find version")
+
 setup(
     name="hurodes",
-    version="0.1.0",  # 也可以从 hurodes/__init__.py 动态获取
+    version=get_version(),
     description="hurodes (Humanoid Robot Description) is a Python toolkit for describing, converting, and processing humanoid robot models.",
     long_description=get_long_description(),
     long_description_content_type='text/markdown',
@@ -59,5 +66,5 @@ setup(
             "hurodes-parse=hurodes.scripts.parse:main",
         ],
     },
-    include_package_data=True,  # 包含非Python文件（如LICENSE）
+    include_package_data=True,
 )
