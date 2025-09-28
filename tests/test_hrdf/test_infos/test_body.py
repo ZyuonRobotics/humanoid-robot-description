@@ -4,7 +4,7 @@ import pandas as pd
 import tempfile
 import os
 
-from hurodes.hrdf.base.info import InfoBase, save_csv, load_csv
+from hurodes.hrdf.base.info import InfoList
 from hurodes.hrdf.infos.body import BodyInfo
 
 INFO_DICT = {
@@ -77,7 +77,7 @@ def test_body_info_comprehensive():
 
 def test_body_info_csv_operations():
     """Test CSV save and load operations for BodyInfo"""
-    info_list = []
+    info_list = InfoList(BodyInfo)
 
     for info_dict in [INFO_DICT, INFO_DICT2, INFO_DICT3]:
         info_list.append(BodyInfo.from_dict(info_dict))
@@ -88,10 +88,10 @@ def test_body_info_csv_operations():
     
     try:
         # Save CSV
-        save_csv(info_list, csv_path)
+        info_list.save_csv(csv_path)
         
         # Load CSV
-        loaded_info_list = load_csv(csv_path, BodyInfo)
+        loaded_info_list = InfoList.from_csv(csv_path, BodyInfo)
         
         # Verify data integrity
         assert len(loaded_info_list) == 3
