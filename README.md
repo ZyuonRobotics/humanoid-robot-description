@@ -6,11 +6,12 @@ hurodes (Humanoid Robot Description) is a Python toolkit for describing, convert
 
 ## Core Features
 
-- **HRDF Unified Intermediate Format**: Uses a structured HRDF directory (CSV + JSON + Mesh) to describe robot information, making batch editing and analysis easy.
+- **HRDF Unified Intermediate Format**: Uses a structured HRDF directory (CSV + YAML + Mesh) to describe robot information, facilitating batch editing and analysis while providing more comprehensive robot descriptions.
 - **Flexible Generators/Parsers**: Supports bidirectional conversion between MJCF ⇆ HRDF ⇆ URDF to meet multi-format collaboration needs.
 - **Multi-Robot Merging**: Through a name prefix mechanism, multiple robot models can be automatically merged into a single MJCF file, supporting collaborative/group simulation.
 - **Scripted Batch Processing**: Built-in command-line scripts make format conversion, model merging, and other common tasks easy.
 - **Modular Design**: Clear package structure for easy secondary development and feature extension.
+- **Rich Interfaces**: Built-in extensive interfaces to support downstream tasks (e.g., reinforcement learning training, motion remapping, physical deployment), avoiding errors from manual filling.
 
 ---
 
@@ -50,16 +51,17 @@ The following examples demonstrate the main script usage for model conversion an
 
 ```bash
 # Parse URDF or MJCF to HRDF (choose format_type: 'urdf' or 'mjcf')
-hurodes-parse --input_path path/to/robot.urdf --robot_name your_robot_name --format_type urdf
+hurodes-parse path/to/robot.urdf your_robot_name --format_type urdf
 
 # Generate MJCF from HRDF and visualize
-hurodes-generate --robot_name your_robot_name
+hurodes-generate your_robot_name
 
-# Compose multiple robots (from HRDF) into a single MJCF and visualize
-hurodes-generate-composite --robot_names robot1,robot2
+# Compose multiple robots (HRDF) into a single MJCF and visualize
+hurodes-generate-composite robot1,robot2
 ```
 
 ---
+
 
 ## HRDF Format Overview
 

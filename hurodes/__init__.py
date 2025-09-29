@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 PROJECT_PATH = Path(__file__).resolve().parent.parent
 

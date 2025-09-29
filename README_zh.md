@@ -6,12 +6,12 @@ hurodes（Humanoid Robot Description）是一个用于人形机器人模型描�
 
 ## 核心特性
 
-- **HRDF 统一中间格式**：采用结构化的 HRDF 目录（CSV + JSON + Mesh）描述机器人信息，便于批量编辑与分析。
-- **灵活的生成器/解析器**：支持 MJCF ⇆ HRDF ⇆ URDF 的双向转换，满足多格式协同需求。
-- **多机器人合并**：通过名称前缀机制，可将多个机器人模型自动合并到同一个 MJCF 文件，支持协作/群体仿真。
-- **脚本化批处理**：内置命令行脚本，轻松完成格式互转、模型合并等常见任务。
-- **模块化设计**：清晰的包结构，方便二次开发和功能扩展。
-
+- **HRDF 统一中间格式**：采用结构化的 HRDF 目录（CSV + YAML + Mesh）描述机器人信息，便于批量编辑与分析，且实现更全面的机器人描述
+- **灵活的生成器/解析器**：支持 MJCF ⇆ HRDF ⇆ URDF 的双向转换，满足多格式协同需求
+- **多机器人合并**：通过名称前缀机制，可将多个机器人模型自动合并到同一个 MJCF 文件，支持协作/群体仿真
+- **脚本化批处理**：内置命令行脚本，轻松完成格式互转、模型合并等常见任务
+- **模块化设计**：清晰的包结构，方便二次开发和功能扩展
+- **丰富的接口**：内置大量接口，为下游任务（例如强化学习训练、动作重映射、实物部署）等提供支持，避免手动填写带来的错误
 ---
 
 ## 安装
@@ -51,13 +51,13 @@ pip install -e .[dev]
 
 ```bash
 # 解析 URDF 或 MJCF 为 HRDF（通过 format_type 选择 'urdf' 或 'mjcf'）
-hurodes-parse --input_path path/to/robot.urdf --robot_name your_robot_name --format_type urdf
+hurodes-parse path/to/robot.urdf your_robot_name --format_type urdf
 
 # 从 HRDF 生成 MJCF 并可视化
-hurodes-generate --robot_name your_robot_name
+hurodes-generate your_robot_name
 
 # 合成多个机器人（HRDF）为一个 MJCF 并可视化
-hurodes-generate-composite --robot_names robot1,robot2
+hurodes-generate-composite robot1,robot2
 ```
 
 ---
