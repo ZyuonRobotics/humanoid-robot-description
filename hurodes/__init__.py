@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 
-from hurodes.humanoid_robot import HumanoidRobot
+VERSION = "0.1.0"
 
 PROJECT_PATH = Path(__file__).resolve().parent.parent
 
@@ -9,7 +9,6 @@ PROJECT_PATH = Path(__file__).resolve().parent.parent
 ASSETS_PATH = Path(os.getenv("HURODES_ASSETS_PATH", "~/.hurodes")).expanduser()
 ROBOTS_PATH = ASSETS_PATH / "robots"
 
-VERSION = "0.1.0"
-
+from hurodes.humanoid_robot import HumanoidRobot
 
 __all__ = ["HumanoidRobot"]
