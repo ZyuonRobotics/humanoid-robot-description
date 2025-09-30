@@ -43,8 +43,6 @@ setup(
         "colorama>=0.4.6",
         "click>=8.0",
         "tqdm>=4.67.1",
-        "trimesh>=4.5.10",
-        "fast-simplification>=0.1.11",
         "bidict",
         "PyYAML>=6.0",
         "pydantic>=2.0"
@@ -58,6 +56,10 @@ setup(
             "twine"
         ],
         "physics": ["mujoco>=3.3.0"],
+        "mesh": [
+            "trimesh>=4.5.10",
+            "fast-simplification>=0.1.11",
+        ]
     },
     entry_points={
         "console_scripts": [

@@ -1,4 +1,3 @@
-import trimesh
 import shutil
 
 MUJOCO_MIN_FACES = 1
@@ -7,6 +6,12 @@ MUJOCO_MAX_FACES = 200000
 
 
 def simplify_obj(input_path, output_path, max_faces=8000):
+    try: 
+        import trimesh
+    except ImportError:
+        print("trimesh is not installed. Please install it with `pip install trimesh`")
+        return
+    
     assert MUJOCO_MIN_FACES <= max_faces <= MUJOCO_MAX_FACES, f"max_faces must be between {MUJOCO_MIN_FACES} and {MUJOCO_MAX_FACES}"
 
     mesh = trimesh.load(input_path)
