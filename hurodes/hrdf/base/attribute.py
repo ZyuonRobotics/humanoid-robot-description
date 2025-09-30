@@ -145,16 +145,14 @@ class Name(AttributeBase):
     urdf_path: tuple = ("name",)
 
 @dataclass
-class BodyName(Name):
+class BodyName(AttributeBase):
     name: str = "body_name"
-    mujoco_name: str = None
-    urdf_path: tuple = None
+    dtype: Union[Type, str] = str
 
 @dataclass
-class JointName(Name):
+class JointName(AttributeBase):
     name: str = "joint_name"
-    mujoco_name: str = None
-    urdf_path: tuple = None
+    dtype: Union[Type, str] = str
 
 @dataclass
 class Id(AttributeBase):

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from hurodes.hrdf.base.attribute import Name, AttributeBase, JointName
+from hurodes.hrdf.base.attribute import AttributeBase, JointName
 from hurodes.hrdf.base.info import InfoBase
 
 @dataclass
@@ -21,6 +21,11 @@ class DGain(AttributeBase):
 class PGain(AttributeBase):
     name: str = "p_gain"
 
+@dataclass
+class MotorOrientation(AttributeBase):
+    name: str = "motor_orientation"
+    dtype: str = "bool"
+
 class ActuatorInfo(InfoBase):
     info_name = "ActuatorInfo"
     attr_classes = (
@@ -28,6 +33,7 @@ class ActuatorInfo(InfoBase):
         PeakVelocity,
         DGain,
         PGain,
+        MotorOrientation,
         JointName,
     )
 

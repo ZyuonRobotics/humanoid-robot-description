@@ -4,7 +4,6 @@ from hurodes.hrdf.base.attribute import Position, Axis, Name, AttributeBase, Bod
 from hurodes.hrdf.base.info import InfoBase
 
 
-
 @dataclass
 class Range(AttributeBase):
     name: str = "range"
