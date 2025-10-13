@@ -126,42 +126,47 @@ class HRDF:
         assert info_name in self.info_class_dict, f"Info name {info_name} not found"
         return self.info_list_dict[info_name].get_data_list(attr)
 
+    # joint
     @property
-    def armature_dict(self):
+    def joint_armature_dict(self):
         return self.get_info_data_dict("joint", "name", "armature")
     
     @property
-    def static_friction_dict(self):
+    def joint_static_friction_dict(self):
         return self.get_info_data_dict("joint", "name", "static_friction")
 
     @property
-    def dynamic_friction_dict(self):
+    def joint_dynamic_friction_dict(self):
         return self.get_info_data_dict("joint", "name", "dynamic_friction")
 
     @property
-    def viscous_friction_dict(self):
+    def joint_viscous_friction_dict(self):
         return self.get_info_data_dict("joint", "name", "viscous_friction")
 
     @property
-    def peak_velocity_dict(self):
+    def joint_range_dict(self):
+        return self.get_info_data_dict("joint", "name", "range")
+
+    @property
+    def joint_name_list(self):
+        return self.get_info_data_list("joint", "name")
+
+    # actuator
+    @property
+    def actuator_peak_velocity_dict(self):
         return self.get_info_data_dict("actuator", "joint_name", "peak_velocity")
 
     @property
-    def peak_torque_dict(self):
+    def actuator_peak_torque_dict(self):
         return self.get_info_data_dict("actuator", "joint_name", "peak_torque")
 
     @property
-    def p_gain_dict(self):
+    def actuator_p_gain_dict(self):
         return self.get_info_data_dict("actuator", "joint_name", "p_gain")
 
     @property
-    def d_gain_dict(self):
+    def actuator_d_gain_dict(self):
         return self.get_info_data_dict("actuator", "joint_name", "d_gain")
-
-    @property
-    def joint_names(self):
-        return self.get_info_data_list("joint", "name")
-
     @property
     def base_height(self):
         return float(self.info_list_dict["body"][0]["pos"].data[2])
