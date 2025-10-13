@@ -6,7 +6,7 @@ from hurodes.utils.string import filter_str_list
 
 class BaseParser(ABC):
     def __init__(self, file_path, robot_name):
-        self.file_path = file_path
+        self.file_path = Path(file_path)
         self.robot_name = robot_name
         self.hrdf = HRDF()
 

@@ -6,6 +6,7 @@ import mujoco
 from hurodes.parsers.base_parser import BaseParser
 from hurodes.parsers.mjcf_parser import HumanoidMJCFParser
 from hurodes.hrdf.infos.actuator import ActuatorInfo
+from hurodes.utils.string import parse_inertia_file
 
 def is_mesh_dir(dir_path):
     if not Path(dir_path).exists() or not Path(dir_path).is_dir():
@@ -41,14 +42,9 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
         self.tree = ET.parse(self.file_path)
         self.root = self.tree.getroot()
 
-    def fix_urdf(self, base_link_name="base_link"):
-        # Ensure the root element is a robot tag
-        if self.root.tag != 'robot':
-            raise ValueError("Root element is not 'robot'")
-
+    def fix_urdf_mujoco_tag(self):
         mesh_dir = find_mesh_dir(self.file_path, self.mesh_dir_path)
         
-        # Create mujoco tag
         mujoco_elem = self.root.find("mujoco")
         if mujoco_elem is None:
             mujoco_elem = ET.Element('mujoco')
@@ -69,13 +65,14 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
                 original_mesh_dir = compiler_elem.attrib['meshdir']
                 if is_mesh_dir(original_mesh_dir):
                     mesh_dir = Path(original_mesh_dir)
-                elif is_mesh_dir(Path(self.file_path).parent / original_mesh_dir):
-                    mesh_dir = Path(self.file_path).parent / original_mesh_dir
+                elif is_mesh_dir(self.file_path.parent / original_mesh_dir):
+                    mesh_dir = self.file_path.parent / original_mesh_dir
                 else:
                     assert mesh_dir is not None, "Mesh directory not found"
                 compiler_elem.attrib['meshdir'] = str(mesh_dir)
-        
-        # check if floating joint exists
+
+    def fix_urdf_worldbody(self, base_link_name="base_link"):
+         # check if floating joint exists
         floating_joint_exists = False
         for joint in self.root.findall("joint"):
             if joint.attrib['type'] == 'floating':
@@ -100,6 +97,42 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
             self.root.insert(0, dummy_link)
             self.root.insert(1, dummy_joint)
 
+    def fix_urdf_inerita(self):
+        for text_path in (self.file_path.parent.parent / "sw_inertia").iterdir():
+            assert text_path.is_file(), f"{text_path} is not a file"
+            
+            with open(text_path, "r") as f:
+                content = f.read()
+            link_name, mass, inertia_dict = parse_inertia_file(content)
+            link_found = False
+            for link_elem in self.root.findall("link"):
+                if link_elem.attrib['name'] == link_name:
+                    link_found = True
+                    inertial_elem = link_elem.find("inertial")
+                    assert inertial_elem is not None, f"inertial element not found in the link {link_name}"
+
+                    inertia_elem = inertial_elem.find("inertia")
+                    assert inertia_elem is not None, f"inertia element not found in the link {link_name}"
+                    inertia_elem.attrib.update({k: str(v) for k, v in inertia_dict.items()})
+                    
+                    mass_elem = inertial_elem.find("mass")
+                    assert mass_elem is not None, f"mass element not found in the inertia element of the link {link_name}"
+                    mass_elem.attrib["value"] = str(mass)
+                    break
+            assert link_found, f"{link_name} not found in the urdf"
+
+
+    def fix_urdf(self, base_link_name="base_link"):
+        # Ensure the root element is a robot tag
+        if self.root.tag != 'robot':
+            raise ValueError("Root element is not 'robot'")
+
+        self.fix_urdf_mujoco_tag()
+        self.fix_urdf_worldbody(base_link_name=base_link_name)
+        sw_inertia_path = self.file_path.parent.parent / "sw_inertia"
+        if sw_inertia_path.exists():
+            self.fix_urdf_inerita()
+        
     def fix_actuator(self):
         for joint in self.root.findall("joint"):
             if joint.attrib['type'] != 'revolute':
