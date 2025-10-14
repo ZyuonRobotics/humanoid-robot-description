@@ -145,14 +145,20 @@ class Name(AttributeBase):
     urdf_path: tuple = ("name",)
 
 @dataclass
-class BodyName(AttributeBase):
+class BodyName(Name):
+    # BodyName should be a subclass of Name, which will be addressed when generate mjcf
     name: str = "body_name"
     dtype: Union[Type, str] = str
+    mujoco_name = None
+    urdf_path = None
 
 @dataclass
-class JointName(AttributeBase):
+class JointName(Name):
+    # JointName should be a subclass of Name, which will be addressed when generate mjcf
     name: str = "joint_name"
     dtype: Union[Type, str] = str
+    mujoco_name = None
+    urdf_path = None
 
 @dataclass
 class Id(AttributeBase):
