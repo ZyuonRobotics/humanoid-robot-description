@@ -29,8 +29,8 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
         for generator in self.generators.values():
             generator.clean()
 
-    def _generate(self, prefix=None, add_scene=True):
-        self._prepare_generators(prefix)
+    def _generate(self, prefix=None, add_scene=True, relative_mesh_path=True):
+        self._prepare_generators(prefix, relative_mesh_path)
         self._merge_generators_xml()
         # post-processing
         self._unify_mesh_paths_and_meshdir()
@@ -41,11 +41,12 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
         for generator in self.generators.values():
             generator.destroy()
 
-    def _prepare_generators(self, prefix=None):
+    def _prepare_generators(self, prefix=None, relative_mesh_path=True):
         for name, generator in self.generators.items():
             generator.generate(
                 prefix=f"{prefix}_{name}" if prefix is not None else name,
-                add_scene=False
+                add_scene=False,
+                relative_mesh_path=relative_mesh_path
             )
 
     def _merge_generators_xml(self):
