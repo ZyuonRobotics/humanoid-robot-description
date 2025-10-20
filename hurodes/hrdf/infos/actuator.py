@@ -26,6 +26,16 @@ class MotorOrientation(AttributeBase):
     name: str = "motor_orientation"
     dtype: str = "bool"
 
+@dataclass
+class MotorType(AttributeBase):
+    name: str = "motor_type"
+    dtype: str = "str"
+
+@dataclass
+class CANID(AttributeBase):
+    name: str = "can_id"
+    dtype: str = "int"
+
 class ActuatorInfo(InfoBase):
     info_name = "ActuatorInfo"
     attr_classes = (
@@ -34,6 +44,8 @@ class ActuatorInfo(InfoBase):
         DGain,
         PGain,
         MotorOrientation,
+        MotorType,
+        CANID,
         JointName,
     )
 
