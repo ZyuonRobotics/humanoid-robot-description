@@ -29,7 +29,7 @@ class HumanoidMJCFParser(BaseParser):
 
     @property
     def mujoco_spec(self):
-        return mujoco.MjSpec.from_file(self.file_path) # type: ignore
+        return mujoco.MjSpec.from_file(str(self.file_path)) # type: ignore
 
     def collect_body_info(self, model, spec):
         assert model.body(0).name == "world", "First body should be world."
