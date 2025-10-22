@@ -47,6 +47,8 @@ class HRDF:
         self.simulator_config = None
         self.body_name_config = BodyNameConfig()
         self.imu_configs = []
+        self.motor_device_name = None
+        self.imu_device_name = None
     
     @classmethod
     def from_dir(cls, hrdf_path: Path):
@@ -63,6 +65,9 @@ class HRDF:
         instance.simulator_config = SimulatorConfig.from_dict(meta_info.get("simulator_config", {}))
         instance.body_name_config = BodyNameConfig.from_dict(meta_info.get("body_name_config", {}))
         instance.imu_configs = [IMUConfig.from_dict(imu_config) for imu_config in meta_info.get("imu_configs", [])]
+        instance.motor_device_name = meta_info.get("motor_device_name", None)
+        instance.imu_device_name = meta_info.get("imu_device_name", None)
+
         for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             component_csv = Path(hrdf_path, f"{name}.csv")
             if component_csv.exists():
@@ -103,7 +108,9 @@ class HRDF:
             "mesh_file_type": self.mesh_file_type,
             "simulator_config": self.simulator_config.to_dict(),
             "body_name_config": self.body_name_config.to_dict(),
-            "imu_configs": [imu_config.to_dict() for imu_config in self.imu_configs]
+            "imu_configs": [imu_config.to_dict() for imu_config in self.imu_configs],
+            "motor_device_name": self.motor_device_name,
+            "imu_device_name": self.imu_device_name
         }
         with open(meta_path, "w", encoding='utf-8') as yaml_file:
             yaml.dump(meta_info, yaml_file, default_flow_style=False, allow_unicode=True, indent=2)
