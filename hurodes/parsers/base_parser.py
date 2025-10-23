@@ -51,4 +51,4 @@ class BaseParser(ABC):
             value=["linacc", "angvel", "quat"]
         )
         imu_config.body_name = body_names[0]
-        self.hrdf.imu_configs.append(imu_config)
+        self.hrdf.imu_config_list.append(imu_config)

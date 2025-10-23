@@ -29,12 +29,22 @@ class BodyNameConfig(BaseConfig):
     knee_names: list[str] = []
     foot_names: list[str] = []
 
-class IMUConfig(BaseConfig):
+class DeviceConfig(BaseConfig):
+    device_type: str = ""
+    device_config_name: str = ""
+    name: str = ""
+
+    def model_post_init(self, __context: any):
+        self.name = f"{self.device_type}_{self.device_config_name}"
+
+class IMUConfig(DeviceConfig):
     position: list[float] = [0, 0, 0]
     orientation: list[float] = [1, 0, 0, 0]
-    name: str = ""
     body_name: str = ""
     value: list[str] = []
+
+class MotorConfig(DeviceConfig):
+    pass
 
 class HRDF:
     def __init__(self, info_class_dict: Optional[dict[str, type[InfoBase]]] = None, **kwargs):
@@ -46,9 +56,8 @@ class HRDF:
         self.mesh_file_type = None
         self.simulator_config = None
         self.body_name_config = BodyNameConfig()
-        self.imu_configs = []
-        self.motor_device_name = None
-        self.imu_device_name = None
+        self.imu_config_list = []
+        self.motor_config_list = []
     
     @classmethod
     def from_dir(cls, hrdf_path: Path):
@@ -64,9 +73,8 @@ class HRDF:
         instance.mesh_file_type = meta_info.get("mesh_file_type", None)
         instance.simulator_config = SimulatorConfig.from_dict(meta_info.get("simulator_config", {}))
         instance.body_name_config = BodyNameConfig.from_dict(meta_info.get("body_name_config", {}))
-        instance.imu_configs = [IMUConfig.from_dict(imu_config) for imu_config in meta_info.get("imu_configs", [])]
-        instance.motor_device_name = meta_info.get("motor_device_name", None)
-        instance.imu_device_name = meta_info.get("imu_device_name", None)
+        instance.imu_config_list = [IMUConfig.from_dict(imu_config) for imu_config in meta_info.get("imu_config_list", [])]
+        instance.motor_config_list = [MotorConfig.from_dict(motor_config) for motor_config in meta_info.get("motor_config_list", [])]
 
         for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             component_csv = Path(hrdf_path, f"{name}.csv")
@@ -108,9 +116,8 @@ class HRDF:
             "mesh_file_type": self.mesh_file_type,
             "simulator_config": self.simulator_config.to_dict(),
             "body_name_config": self.body_name_config.to_dict(),
-            "imu_configs": [imu_config.to_dict() for imu_config in self.imu_configs],
-            "motor_device_name": self.motor_device_name,
-            "imu_device_name": self.imu_device_name
+            "imu_config_list": [imu_config.to_dict() for imu_config in self.imu_config_list],
+            "motor_config_list": [motor_config.to_dict() for motor_config in self.motor_config_list],
         }
         with open(meta_path, "w", encoding='utf-8') as yaml_file:
             yaml.dump(meta_info, yaml_file, default_flow_style=False, allow_unicode=True, indent=2)
@@ -196,4 +203,8 @@ class HRDF:
     
     @property
     def imu_dict(self):
-        return {imu_config.name: imu_config.value for imu_config in self.imu_configs}
+        return {imu_config.name: imu_config.value for imu_config in self.imu_config_list}
+
+    @property
+    def motor_dict(self):
+        return {motor_config.name: motor_config.value for motor_config in self.motor_config_list}

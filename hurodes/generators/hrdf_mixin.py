@@ -103,4 +103,4 @@ class HRDFMixin(ABC):
     @property
     def imu_configs(self) -> list[IMUConfig]:
         assert self.hrdf is not None, "HRDF not loaded"
-        return self.hrdf.imu_configs
+        return self.hrdf.imu_config_list
