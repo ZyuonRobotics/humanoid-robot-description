@@ -83,7 +83,7 @@ class JointMappingConfig(BaseConfig):
 
 if __name__ == "__main__":
     from hurodes import ROBOTS_PATH
-    config = JointMappingConfig.from_yaml(ROBOTS_PATH / "zhaplin-21dof" / "joint_mapping.yaml")
+    config = JointMappingConfig.from_yaml(ROBOTS_PATH / "zhaplin-19dof" / "joint_mapping.yaml")
     
     joint_pos = np.random.rand(config.motor_num)
     joint_vel = np.random.rand(config.motor_num)
