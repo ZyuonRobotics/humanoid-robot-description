@@ -28,6 +28,8 @@ class JointMappingConfig(BaseConfig):
         return len(self.motor_id_list)
 
     def model_post_init(self, __context: any):
+        assert len(self.motor_id_list) == len(set(self.motor_id_list)), f"Motor IDs must be unique: {self.motor_id_list}"
+
         motor_found = np.zeros(self.motor_num, dtype=bool)
         joint_found = np.zeros(self.motor_num, dtype=bool)
         for solver_config in self.solver_config_dict.values():

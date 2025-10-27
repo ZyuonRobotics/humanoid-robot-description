@@ -186,6 +186,7 @@ class HRDF:
     @property
     def actuator_d_gain_dict(self):
         return self.get_info_data_dict("actuator", "joint_name", "d_gain")
+    
     @property
     def base_height(self):
         return float(self.info_list_dict["body"][0]["pos"].data[2])
