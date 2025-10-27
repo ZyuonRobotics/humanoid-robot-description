@@ -10,6 +10,7 @@ from hurodes.hrdf.infos import INFO_CLASS_DICT
 from hurodes.utils.mesh import simplify_obj
 from hurodes import ROBOTS_PATH
 from hurodes.utils.config import BaseConfig
+from hurodes.hrdf.joint_mapping.joint_mapping_config import JointMappingConfig
 
 
 class GroundConfig(BaseConfig):
@@ -56,6 +57,7 @@ class HRDF:
         self.mesh_file_type = None
         self.simulator_config = None
         self.body_name_config = BodyNameConfig()
+        self.joint_mapping_config = JointMappingConfig()
         self.imu_config_list = []
         self.motor_config_list = []
     
@@ -75,6 +77,9 @@ class HRDF:
         instance.body_name_config = BodyNameConfig.from_dict(meta_info.get("body_name_config", {}))
         instance.imu_config_list = [IMUConfig.from_dict(imu_config) for imu_config in meta_info.get("imu_config_list", [])]
         instance.motor_config_list = [MotorConfig.from_dict(motor_config) for motor_config in meta_info.get("motor_config_list", [])]
+
+        if Path(hrdf_path, "joint_mapping.yaml").exists():
+            instance.joint_mapping_config = JointMappingConfig.from_yaml(Path(hrdf_path, "joint_mapping.yaml"))
 
         for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
             component_csv = Path(hrdf_path, f"{name}.csv")
@@ -181,6 +186,7 @@ class HRDF:
     @property
     def actuator_d_gain_dict(self):
         return self.get_info_data_dict("actuator", "joint_name", "d_gain")
+    
     @property
     def base_height(self):
         return float(self.info_list_dict["body"][0]["pos"].data[2])

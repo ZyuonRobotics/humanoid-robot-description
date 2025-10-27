@@ -21,21 +21,6 @@ class DGain(AttributeBase):
 class PGain(AttributeBase):
     name: str = "p_gain"
 
-@dataclass
-class MotorOrientation(AttributeBase):
-    name: str = "motor_orientation"
-    dtype: str = "bool"
-
-@dataclass
-class MotorType(AttributeBase):
-    name: str = "motor_type"
-    dtype: str = "str"
-
-@dataclass
-class MotorID(AttributeBase):
-    name: str = "motor_id"
-    dtype: str = "int"
-
 class ActuatorInfo(InfoBase):
     info_name = "ActuatorInfo"
     attr_classes = (
@@ -43,9 +28,6 @@ class ActuatorInfo(InfoBase):
         PeakVelocity,
         DGain,
         PGain,
-        MotorOrientation,
-        MotorType,
-        MotorID,
         JointName,
     )
 
