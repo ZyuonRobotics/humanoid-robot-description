@@ -1,6 +1,5 @@
 from typing import Union, List, Dict
 from pathlib import Path
-import os
 
 from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
 
@@ -68,6 +67,19 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
                         return Path(meshdir) / mesh_elem.get("file")
         raise ValueError(f"Mesh {mesh_name} not found")
 
+    def _commonpath(self, paths):
+        """Find the common path prefix for a list of Path objects."""
+        if not paths:
+            return None
+        path_parts = [p.parts for p in paths]
+        common_parts = []
+        for parts in zip(*path_parts):
+            if all(p == parts[0] for p in parts):
+                common_parts.append(parts[0])
+            else:
+                break
+        return Path(*common_parts)
+
     def _unify_mesh_paths_and_meshdir(self):
         # Find all mesh file absolute paths in the merged xml
         asset_elem = self.get_elem("asset")
@@ -78,7 +90,7 @@ class MJCFGeneratorComposite(MJCFGeneratorBase):
         assert  len(mesh_names) == len(set(mesh_names)), "Mesh names are not unique"
 
         mesh_paths = [self.get_mesh_path(mesh_name) for mesh_name in mesh_names]
-        common_meshdir = Path(os.path.commonpath(mesh_paths))
+        common_meshdir = self._commonpath(mesh_paths)
 
         # Update all mesh file attributes to be relative to common_meshdir
         for mesh_elem, abs_path in zip(mesh_elems, mesh_paths):

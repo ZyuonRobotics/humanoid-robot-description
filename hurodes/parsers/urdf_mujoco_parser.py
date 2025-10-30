@@ -17,14 +17,16 @@ def is_mesh_dir(dir_path):
     return False
 
 def find_mesh_dir(urdf_path, mesh_dir_path=None):
+    urdf_path = Path(urdf_path)
     if mesh_dir_path is not None:
+        mesh_dir_path = Path(mesh_dir_path)
         if is_mesh_dir(mesh_dir_path):
             return mesh_dir_path
-    
-    if is_mesh_dir(Path(urdf_path).parent / "meshes"):
-        return Path(urdf_path).parent / "meshes"
-    if is_mesh_dir(Path(urdf_path).parent.parent / "meshes"):
-        return Path(urdf_path).parent.parent / "meshes"
+
+    if is_mesh_dir(urdf_path.parent / "meshes"):
+        return urdf_path.parent / "meshes"
+    if is_mesh_dir(urdf_path.parent.parent / "meshes"):
+        return urdf_path.parent.parent / "meshes"
     return None
 
 
@@ -39,7 +41,7 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
         BaseParser.__init__(self, urdf_path, robot_name)
         self.mesh_dir_path = mesh_dir_path
         self.timestep = timestep
-        self.tree = ET.parse(self.file_path)
+        self.tree = ET.parse(str(self.file_path))
         self.root = self.tree.getroot()
 
     def fix_urdf_mujoco_tag(self):
@@ -149,7 +151,7 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
                     actuator_info_dict["peak_velocity"] = float(limit.attrib['velocity'])
 
             actuator_info = ActuatorInfo.from_dict(actuator_info_dict)
-            self.hrdf.info_list_dict["actuator"].append(actuator_info)
+            self.hrdf.add_info("actuator", actuator_info)
 
     @property
     def mujoco_spec(self):

@@ -53,12 +53,12 @@ class URDFHumanoidGenerator(HRDFMixin, URDFGeneratorBase):
             body_info.to_urdf_elem(link_elem, "link")
 
             # Add simple geometries
-            simple_geom_infos = self.find_info_by_attr("body_name", body_name, "simple_geom")
+            simple_geom_infos = self.get_info_by_attr("body_name", body_name, "simple_geom")
             for simple_geom_info in simple_geom_infos:
                 simple_geom_info.to_urdf_elem(link_elem)
 
             # Add mesh geometries
-            mesh_infos = self.find_info_by_attr("body_name", body_name, "mesh")
+            mesh_infos = self.get_info_by_attr("body_name", body_name, "mesh")
             for mesh_info in mesh_infos:
                 mesh_info.to_urdf_elem(link_elem)
                 
@@ -88,16 +88,16 @@ class URDFHumanoidGenerator(HRDFMixin, URDFGeneratorBase):
             joint_info.to_urdf_elem(joint_elem)
 
             # Add child body info to joint
-            child_body_info = self.find_info_by_attr("name", body_name, "body", single=True)
+            child_body_info = self.get_info_by_attr("name", body_name, "body", single=True)
             child_body_info.to_urdf_elem(joint_elem, "child")
 
             # Add parent body info to joint
             parent_body_id = self.body_parent_id[child_body_info["id"].data]
-            parent_body_info = self.find_info_by_attr("id", parent_body_id, "body", single=True)
+            parent_body_info = self.get_info_by_attr("id", parent_body_id, "body", single=True)
             parent_body_info.to_urdf_elem(joint_elem, "parent")
 
             # Add actuator info
-            actuator_info = self.find_info_by_attr("joint_name", joint_name, "actuator", single=True)
+            actuator_info = self.get_info_by_attr("joint_name", joint_name, "actuator", single=True)
             actuator_info.to_urdf_elem(joint_elem)
 
     def _generate_mujoco_elem(self, relative_mesh_path=True):

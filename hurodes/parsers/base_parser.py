@@ -1,12 +1,15 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
+from typing import Union
 
-from hurodes.hrdf.hrdf import HRDF, IMUConfig
+from hurodes.hrdf.hrdf import HRDF, IMUConfig, BodyNameConfig
 from hurodes.utils.string import filter_str_list
 
 class BaseParser(ABC):
-    def __init__(self, file_path, robot_name):
-        self.file_path = Path(file_path)
+    def __init__(self, file_path: Union[Path, str], robot_name: str):
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+        self.file_path = file_path
         self.robot_name = robot_name
         self.hrdf = HRDF()
 
@@ -30,6 +33,7 @@ class BaseParser(ABC):
     def parse_body_name(self):
         body_names = self.hrdf.info_list_dict["body"].get_data_list("name")
 
+        self.hrdf.body_name_config = BodyNameConfig()
         for name in ["hip", "knee", "foot"]:
             left_body_names = filter_str_list(body_names, pos_strings=["left", name])
             right_body_names = filter_str_list(body_names, pos_strings=["right", name])
@@ -51,4 +55,4 @@ class BaseParser(ABC):
             value=["linacc", "angvel", "quat"]
         )
         imu_config.body_name = body_names[0]
-        self.hrdf.imu_config_list.append(imu_config)
+        self.hrdf.imu_config_list = [imu_config]

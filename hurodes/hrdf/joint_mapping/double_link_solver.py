@@ -1,6 +1,12 @@
 import numpy as np
-import casadi as ca
 from scipy.optimize import least_squares
+
+try:
+    import casadi as ca
+    CASADI_AVAILABLE = True
+except ImportError:
+    CASADI_AVAILABLE = False
+    ca = None
 
 from hurodes.hrdf.joint_mapping.base_solver import BaseSolver
 
@@ -42,6 +48,11 @@ def get_phi(p_u, p_a, h, r):
 
 class DoubleLinkSolver(BaseSolver):
     def __init__(self, solver_params: dict):
+        if not CASADI_AVAILABLE:
+            raise ImportError(
+                "CasADi is required for DoubleLinkSolver. "
+                "Please install it with: pip install 'hurodes[hal]' or pip install casadi"
+            )
         super().__init__(solver_params)
         self.jacobian_func = self._generate_jacobian_func()
 

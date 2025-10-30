@@ -45,7 +45,8 @@ setup(
         "tqdm>=4.67.1",
         "bidict",
         "PyYAML>=6.0",
-        "pydantic>=2.0"
+        "pydantic>=2.0",
+        "mujoco>=3.3.0"
     ],
     extras_require={
         "dev": [
@@ -55,10 +56,15 @@ setup(
             "build", 
             "twine"
         ],
-        "physics": ["mujoco>=3.3.0"],
         "mesh": [
             "trimesh>=4.5.10",
             "fast-simplification>=0.1.11",
+        ],
+        "hal": ["casadi>=3.5.0"],
+        "all": [
+            "trimesh>=4.5.10",
+            "fast-simplification>=0.1.11",
+            "casadi>=3.5.0",
         ]
     },
     entry_points={

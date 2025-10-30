@@ -83,6 +83,18 @@ class JointMappingConfig(BaseConfig):
             res[solver_config.motor_idx_list] = solver_config.solver.motor2joint_torque(joint_pos[solver_config.joint_idx_list], motor_torque[solver_config.motor_idx_list])
         return res
 
+    def motor2joint(self, motor_pos: np.ndarray, motor_vel: np.ndarray, motor_torque: np.ndarray):
+        joint_pos = self.motor2joint_pos(motor_pos)
+        joint_vel = self.motor2joint_vel(joint_pos, motor_vel)
+        joint_torque = self.motor2joint_torque(joint_pos, motor_torque)
+        return joint_pos, joint_vel, joint_torque
+
+    def joint2motor(self, joint_pos: np.ndarray, joint_vel: np.ndarray, joint_torque: np.ndarray):
+        motor_pos = self.joint2motor_pos(joint_pos)
+        motor_vel = self.joint2motor_vel(joint_pos, joint_vel)
+        motor_torque = self.joint2motor_torque(joint_pos, joint_torque)
+        return motor_pos, motor_vel, motor_torque
+
 if __name__ == "__main__":
     from hurodes import ROBOTS_PATH
     config = JointMappingConfig.from_yaml(ROBOTS_PATH / "zhaplin-19dof" / "joint_mapping.yaml")

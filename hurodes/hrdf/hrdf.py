@@ -1,6 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union, Any
 from functools import partial
 
 import yaml
@@ -14,95 +14,83 @@ from hurodes.hrdf.joint_mapping.joint_mapping_config import JointMappingConfig
 
 
 class GroundConfig(BaseConfig):
-    type: str = "plane"
-    contact_affinity: int = 1
-    contact_type: int = 1
-    friction: float = 1.0
+    type: str = None
+    contact_affinity: int = None
+    contact_type: int = None
+    friction: float = None
 
 class SimulatorConfig(BaseConfig):
-    timestep: float = 0.002
-    gravity: list[float] = [0, 0, -9.81]
-    ground: GroundConfig = GroundConfig()
+    timestep: float = None
+    gravity: list[float] = None
+    ground: GroundConfig = None
 
 class BodyNameConfig(BaseConfig):
-    torso_name: str = ""
-    hip_names: list[str] = []
-    knee_names: list[str] = []
-    foot_names: list[str] = []
+    torso_name: str = None
+    hip_names: list[str] = None
+    knee_names: list[str] = None
+    foot_names: list[str] = None
 
 class DeviceConfig(BaseConfig):
-    device_type: str = ""
-    device_config_name: str = ""
-    name: str = ""
+    device_type: str = None
+    device_config_name: str = None
 
-    def model_post_init(self, __context: any):
-        self.name = f"{self.device_type}_{self.device_config_name}"
+    @property
+    def name(self):
+        if self.device_type is not None and self.device_config_name is not None:
+            return f"{self.device_type}_{self.device_config_name}"
+        else:
+            return None
 
 class IMUConfig(DeviceConfig):
-    position: list[float] = [0, 0, 0]
-    orientation: list[float] = [1, 0, 0, 0]
-    body_name: str = ""
-    value: list[str] = []
+    position: list[float] = None
+    orientation: list[float] = None
+    body_name: str = None
+    value: list[str] = None
 
 class MotorConfig(DeviceConfig):
     pass
 
-class HRDF:
-    def __init__(self, info_class_dict: Optional[dict[str, type[InfoBase]]] = None, **kwargs):
-        self.info_class_dict = info_class_dict or INFO_CLASS_DICT
-        self.info_list_dict = {name: InfoList(info_class) for name, info_class in self.info_class_dict.items()}
-
-        self.robot_name = None
-        self.body_parent_id: list[int] = []
-        self.mesh_file_type = None
-        self.simulator_config = None
-        self.body_name_config = BodyNameConfig()
-        self.joint_mapping_config = JointMappingConfig()
-        self.imu_config_list = []
-        self.motor_config_list = []
+class HRDF(BaseConfig):
+    model_config = {"arbitrary_types_allowed": True}
     
+    robot_name: str = None
+    # from meta.yaml
+    body_parent_id: list[int] = None
+    mesh_file_type: str = None
+    simulator_config: SimulatorConfig = None
+    body_name_config: BodyNameConfig = None
+    imu_config_list: list[IMUConfig] = None
+    motor_config_list: list[MotorConfig] = None
+    # from joint_mapping.yaml
+    joint_mapping_config: JointMappingConfig = None
+    # from component CSV files
+    info_list_dict: dict[str, InfoList] = None
+
     @classmethod
-    def from_dir(cls, hrdf_path: Path):
+    def from_dir(cls, hrdf_path: Union[Path, str]):
+        if isinstance(hrdf_path, str):
+            hrdf_path = Path(hrdf_path)
         assert hrdf_path.exists(), f"HRDF path not found: {hrdf_path}"
         assert hrdf_path.is_dir(), f"HRDF path is not a directory: {hrdf_path}"
         assert (hrdf_path / "meta.yaml").exists(), f"meta.yaml not found in HRDF path: {hrdf_path}"
 
-        instance = cls()
-        with open(Path(hrdf_path, "meta.yaml"), "r", encoding='utf-8') as f:
+        with open(hrdf_path / "meta.yaml", "r", encoding='utf-8') as f:
             meta_info = yaml.safe_load(f)
+        instance = cls.from_dict(meta_info)
         instance.robot_name = hrdf_path.relative_to(ROBOTS_PATH).as_posix()
-        instance.body_parent_id = meta_info["body_parent_id"]
-        instance.mesh_file_type = meta_info.get("mesh_file_type", None)
-        instance.simulator_config = SimulatorConfig.from_dict(meta_info.get("simulator_config", {}))
-        instance.body_name_config = BodyNameConfig.from_dict(meta_info.get("body_name_config", {}))
-        instance.imu_config_list = [IMUConfig.from_dict(imu_config) for imu_config in meta_info.get("imu_config_list", [])]
-        instance.motor_config_list = [MotorConfig.from_dict(motor_config) for motor_config in meta_info.get("motor_config_list", [])]
 
-        if Path(hrdf_path, "joint_mapping.yaml").exists():
-            instance.joint_mapping_config = JointMappingConfig.from_yaml(Path(hrdf_path, "joint_mapping.yaml"))
+        if (hrdf_path / "joint_mapping.yaml").exists():
+            instance.joint_mapping_config = JointMappingConfig.from_yaml(hrdf_path / "joint_mapping.yaml")
 
-        for name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
-            component_csv = Path(hrdf_path, f"{name}.csv")
+        for info_list_name, info_list_class in INFO_CLASS_DICT.items():
+            component_csv = hrdf_path / f"{info_list_name}.csv"
             if component_csv.exists():
-                instance.info_list_dict[name] = InfoList.from_csv(str(component_csv), instance.info_class_dict[name])
+                if instance.info_list_dict is None:
+                    instance.info_list_dict = {}
+                instance.info_list_dict[info_list_name] = InfoList.from_csv(component_csv, info_list_class)
         return instance
 
-    @property
-    def hrdf_path(self):
-        return ROBOTS_PATH / self.robot_name
-    
-    def find_info_by_attr(self, attr_name: str, attr_value: str, info_name: str, single=False):
-        assert info_name in self.info_class_dict, f"Info name {info_name} not found"
-        return self.info_list_dict[info_name].find_info_by_attr(attr_name, attr_value, single)
-
-    def save(self, mesh_path=None, max_faces=8000):
-        """
-        Save the HumanoidRobot to HRDF format.
-        
-        Args:
-            mesh_path: Dictionary mapping mesh names to source paths (optional, for mesh processing)
-            max_faces: Maximum number of faces for mesh simplification
-        """
+    def save(self, mesh_path: Optional[dict[str, Union[Path, str]]] = None, max_faces: int = 8000):
         self.hrdf_path.mkdir(parents=True, exist_ok=True)
         
         # Process mesh files if mesh_path is provided
@@ -116,35 +104,47 @@ class HRDF:
         # Save metadata
         meta_path = self.hrdf_path / "meta.yaml"
         meta_path.touch(exist_ok=True)
-        meta_info = {
-            "body_parent_id": self.body_parent_id,
-            "mesh_file_type": self.mesh_file_type,
-            "simulator_config": self.simulator_config.to_dict(),
-            "body_name_config": self.body_name_config.to_dict(),
-            "imu_config_list": [imu_config.to_dict() for imu_config in self.imu_config_list],
-            "motor_config_list": [motor_config.to_dict() for motor_config in self.motor_config_list],
-        }
-        with open(meta_path, "w", encoding='utf-8') as yaml_file:
-            yaml.dump(meta_info, yaml_file, default_flow_style=False, allow_unicode=True, indent=2)
+        self.to_yaml(meta_path)
         
         # Save component CSV files
-        for info_name in ["body", "joint", "actuator", "mesh", "simple_geom"]:
-            if len(self.info_list_dict[info_name]) > 0:
-                self.info_list_dict[info_name].save_csv(self.hrdf_path / f"{info_name}.csv")
+        for info_name, info_list in self.info_list_dict.items():
+            if len(info_list) > 0:
+                info_list.save_csv(self.hrdf_path / f"{info_name}.csv")
+
+        # Save joint mapping config
+        if self.joint_mapping_config is not None:
+            self.joint_mapping_config.to_yaml(self.hrdf_path / "joint_mapping.yaml")
 
     def fix_simple_geom(self):
-        for idx, simple_geom in enumerate(self.info_list_dict["simple_geom"]):
-            if simple_geom["name"].data == "":
-                simple_geom["name"].data = f"geom_{idx}"
+        if "simple_geom" in self.info_list_dict:
+            for idx, simple_geom in enumerate(self.info_list_dict["simple_geom"]):
+                if simple_geom["name"].data == "":
+                    simple_geom["name"].data = f"geom_{idx}"
 
+    def add_info(self, info_name: str, info: InfoBase):
+        assert info_name in INFO_CLASS_DICT, f"Info name {info_name} not found"
+        if self.info_list_dict is None:
+            self.info_list_dict = {}
+        if info_name not in self.info_list_dict:
+            self.info_list_dict[info_name] = InfoList(INFO_CLASS_DICT[info_name])
+        self.info_list_dict[info_name].append(info)
+
+    def get_info_by_attr(self, attr_name: str, attr_value: str, info_name: str, single=False):
+        assert info_name in INFO_CLASS_DICT, f"Info name {info_name} not found"
+        return self.info_list_dict[info_name].get_info_by_attr(attr_name, attr_value, single)
+    
     def get_info_data_dict(self, info_name: str, key_attr: str, value_attr: str):
-        assert info_name in self.info_class_dict, f"Info name {info_name} not found"
+        assert info_name in INFO_CLASS_DICT, f"Info name {info_name} not found"
         return self.info_list_dict[info_name].get_data_dict(key_attr, value_attr)
 
     def get_info_data_list(self, info_name: str, attr: str):
-        assert info_name in self.info_class_dict, f"Info name {info_name} not found"
+        assert info_name in INFO_CLASS_DICT, f"Info name {info_name} not found"
         return self.info_list_dict[info_name].get_data_list(attr)
 
+    @property
+    def hrdf_path(self):
+        return ROBOTS_PATH / self.robot_name
+    
     # joint
     @property
     def joint_armature_dict(self):
@@ -214,3 +214,10 @@ class HRDF:
     @property
     def motor_dict(self):
         return {motor_config.name: motor_config.value for motor_config in self.motor_config_list}
+    
+    def to_dict(self)-> dict[str, Any]:
+        res = {}
+        for key, value in self.model_dump().items():
+            if key in ["body_parent_id", "mesh_file_type", "simulator_config", "body_name_config", "imu_config_list", "motor_config_list"]:
+                res[key] = value
+        return res

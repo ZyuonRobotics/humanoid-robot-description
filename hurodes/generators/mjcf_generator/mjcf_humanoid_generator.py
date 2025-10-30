@@ -45,16 +45,16 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
         if parent_body.tag == "worldbody":
             ET.SubElement(body_elem, 'freejoint')
         else:
-            joint_info = self.find_info_by_attr("body_name", body_name, "joint", single=True)
+            joint_info = self.get_info_by_attr("body_name", body_name, "joint", single=True)
             ET.SubElement(body_elem, 'joint', attrib=joint_info.to_mujoco_dict(prefix=prefix))
 
         # Add mesh geometries
-        mesh_info_list = self.find_info_by_attr("body_name", body_name, "mesh")
+        mesh_info_list = self.get_info_by_attr("body_name", body_name, "mesh")
         for mesh_info in mesh_info_list:
             ET.SubElement(body_elem, 'geom', attrib=mesh_info.to_mujoco_dict(prefix=prefix))
 
         # Add simple geometries
-        simple_geom_info_list = self.find_info_by_attr("body_name", body_name, "simple_geom")
+        simple_geom_info_list = self.get_info_by_attr("body_name", body_name, "simple_geom")
         for simple_geom_info in simple_geom_info_list:
             ET.SubElement(body_elem, 'geom', attrib=simple_geom_info.to_mujoco_dict(prefix=prefix))
             
@@ -125,7 +125,7 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
         # Keep the order of joints
         joint_info_list = self.info_list("joint")
         for joint_info in joint_info_list:
-            actuator_info = self.find_info_by_attr("joint_name", joint_info["name"].data, "actuator", single=True)
+            actuator_info = self.get_info_by_attr("joint_name", joint_info["name"].data, "actuator", single=True)
             ET.SubElement(actuator_elem, 'motor', attrib=actuator_info.to_mujoco_dict(prefix=prefix))
 
     def add_imu(self, prefix=None):

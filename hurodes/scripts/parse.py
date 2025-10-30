@@ -21,8 +21,8 @@ def main(input_path, robot_name, format_type, base_link_name):
     else:
         raise ValueError(f"Invalid format type: {format_type}")
 
-    parser.print_body_tree()
     parser.parse(base_link_name)
+    parser.print_body_tree()
     parser.save()
 
 if __name__ == "__main__":

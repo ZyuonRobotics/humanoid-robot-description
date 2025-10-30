@@ -19,7 +19,7 @@ class BaseConfig(BaseModel, ABC):
     
     def to_yaml(self, yaml_path: Union[str, Path]) -> None:
         with open(yaml_path, 'w', encoding='utf-8') as f:
-            yaml.safe_dump(self.model_dump(), f, default_flow_style=False, allow_unicode=True)
+            yaml.safe_dump(self.to_dict(), f, default_flow_style=False, allow_unicode=True)
     
     def to_dict(self) -> Dict[str, Any]:
         return self.model_dump() 

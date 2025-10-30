@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import List, Type, Dict, Any, ClassVar, Optional, Union
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import re
@@ -145,7 +146,7 @@ class InfoList:
     def get_data_dict(self, key_attr: str, value_attr: str):
         return {info[key_attr].data: info[value_attr].data for info in self.infos}
 
-    def find_info_by_attr(self, attr_name: str, attr_value: str, single=False):
+    def get_info_by_attr(self, attr_name: str, attr_value: str, single=False):
         res = []
         for info in self.infos:
             if info[attr_name].data == attr_value:
@@ -170,16 +171,16 @@ class InfoList:
     def __getitem__(self, index: int):
         return self.infos[index]
 
-    def save_csv(self, save_path: str):
+    def save_csv(self, save_path: Union[Path, str]):
         assert len(self) > 0, "info_list is empty"
         df_list = [info.to_flat_dict() for info in self.infos]
             
         df = pd.DataFrame(df_list)
-        df.to_csv(save_path, index=False)
+        df.to_csv(str(save_path), index=False)
 
     @classmethod
-    def from_csv(cls, csv_path: str, info_class: Type[InfoBase]):
-        df = pd.read_csv(csv_path)
+    def from_csv(cls, csv_path: Union[Path, str], info_class: Type[InfoBase]):
+        df = pd.read_csv(str(csv_path))
         df = df.replace({np.nan: None})
 
         df_list = df.to_dict('records')

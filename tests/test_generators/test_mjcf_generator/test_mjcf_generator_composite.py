@@ -1,8 +1,5 @@
-import os
 from pathlib import Path
 import xml.etree.ElementTree as ET
-
-from fsspec.caching import P
 
 from hurodes.generators.mjcf_generator.mjcf_generator_composite import MJCFGeneratorComposite
 from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
@@ -61,9 +58,8 @@ def test_composite_generate_and_merge():
     assert mesh_names == {g1._mesh_name, g2._mesh_name}
 
     meshdir = composite.get_elem("compiler").get("meshdir")
-    expected_common = os.path.commonpath([str(g1._meshdir), str(g2._meshdir)])
-    print(meshdir, expected_common)
-    assert meshdir == expected_common
+    # For paths /tmp/meshA and /tmp/meshB, common path should be /tmp
+    assert meshdir ==  "/tmp"
 
 def test_get_mesh_path():
     g1 = MockGenerator("a", meshdir="/tmp/meshA")

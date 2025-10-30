@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Union
 
 import mujoco
 
@@ -14,9 +15,9 @@ MESH_TYPE = int(mujoco.mjtGeom.mjGEOM_MESH)
 
 class HumanoidMJCFParser(BaseParser):
 
-    def __init__(self, mjcf_path, robot_name):
+    def __init__(self, mjcf_path: Union[Path, str], robot_name: str):
         super().__init__(mjcf_path, robot_name)
-        self.tree = ET.parse(self.file_path)
+        self.tree = ET.parse(str(self.file_path))
         self.root = self.tree.getroot()
         self.worldbody = self.root.find("worldbody")
         assert self.worldbody is not None, "No <worldbody> element found in the MJCF file."
@@ -29,25 +30,25 @@ class HumanoidMJCFParser(BaseParser):
 
     @property
     def mujoco_spec(self):
-        return mujoco.MjSpec.from_file(self.file_path) # type: ignore
+        return mujoco.MjSpec.from_file(str(self.file_path)) # type: ignore
 
     def collect_body_info(self, model, spec):
         assert model.body(0).name == "world", "First body should be world."
         for body_idx in range(1, model.nbody):
             body = model.body(body_idx)
             body_info = BodyInfo.from_mujoco(body, spec.bodies[body_idx])
-            self.hrdf.info_list_dict["body"].append(body_info)
+            self.hrdf.add_info("body", body_info)
 
     def collect_joint_info(self, model, spec):
         assert model.joint(0).type[0] == 0, "First joint should be free."
         for jnt_idx in range(1, model.njnt):
             joint_info = JointInfo.from_mujoco(model.joint(jnt_idx), spec.joints[jnt_idx], whole_spec=spec)
-            self.hrdf.info_list_dict["joint"].append(joint_info)
+            self.hrdf.add_info("joint", joint_info)
 
     def collect_actuator_info(self, model, spec):
         for actuator_idx in range(model.nu):
             actuator_info = ActuatorInfo.from_mujoco(model.actuator(actuator_idx), spec.actuators[actuator_idx])
-            self.hrdf.info_list_dict["actuator"].append(actuator_info)
+            self.hrdf.add_info("actuator", actuator_info)
 
     def collect_geom_info(self, model, spec):
         ground_dict = None
@@ -67,10 +68,10 @@ class HumanoidMJCFParser(BaseParser):
 
             if int(geom_model.type) == MESH_TYPE:
                 mesh_info = MeshInfo.from_mujoco(geom_model, geom_spec, whole_spec=spec)
-                self.hrdf.info_list_dict["mesh"].append(mesh_info)
+                self.hrdf.add_info("mesh", mesh_info)
             else:
                 geom_info = SimpleGeomInfo.from_mujoco(geom_model, geom_spec, whole_spec=spec)
-                self.hrdf.info_list_dict["simple_geom"].append(geom_info)
+                self.hrdf.add_info("simple_geom", geom_info)
 
         if ground_dict is None:
             self.simulator_dict["ground"] = {}

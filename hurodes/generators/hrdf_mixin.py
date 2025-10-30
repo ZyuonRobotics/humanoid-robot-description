@@ -75,9 +75,9 @@ class HRDFMixin(ABC):
     def robot_name(self) -> str:
         return self.hrdf.robot_name
     
-    def find_info_by_attr(self, attr_name: str, attr_value: str, info_type: str, single: bool = False):
+    def get_info_by_attr(self, attr_name: str, attr_value: str, info_type: str, single: bool = False):
         assert self.hrdf is not None, "HRDF not loaded"
-        return self.hrdf.find_info_by_attr(attr_name, attr_value, info_type, single=single)
+        return self.hrdf.get_info_by_attr(attr_name, attr_value, info_type, single=single)
     
     @property
     def body_parent_id(self) -> list:
