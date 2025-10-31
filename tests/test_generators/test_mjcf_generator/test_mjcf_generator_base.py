@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 
 from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
-from hurodes.hrdf.hrdf import SimulatorConfig
+from hurodes.hrdf.hrdf import SimulatorConfig, GroundConfig
 
 
 class MJCFGeneratorBaseStub(MJCFGeneratorBase):
@@ -9,6 +9,7 @@ class MJCFGeneratorBaseStub(MJCFGeneratorBase):
         mock_simulator_config = SimulatorConfig()
         mock_simulator_config.timestep = 0.002
         mock_simulator_config.gravity = [0, 0, -9.81]
+        mock_simulator_config.ground = GroundConfig()
         mock_simulator_config.ground.type = "plane"
         mock_simulator_config.ground.contact_type = 1
         mock_simulator_config.ground.contact_affinity = 15
