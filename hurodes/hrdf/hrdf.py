@@ -10,7 +10,7 @@ from hurodes.hrdf.infos import INFO_CLASS_DICT
 from hurodes.utils.mesh import simplify_obj
 from hurodes import ROBOTS_PATH
 from hurodes.utils.config import BaseConfig
-from hurodes.hrdf.joint_mapping.joint_mapping_config import JointMappingConfig
+from hurodes.joint_mapping.joint_mapping_config import JointMappingConfig
 
 
 class GroundConfig(BaseConfig):

@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import Field
 from hurodes.utils.config import BaseConfig
-from hurodes.hrdf.joint_mapping import solver_dict
+from hurodes.joint_mapping import solver_dict
 
 
 class SolverConfig(BaseConfig):
