@@ -23,3 +23,14 @@ class BaseConfig(BaseModel, ABC):
     
     def to_dict(self) -> Dict[str, Any]:
         return self.model_dump() 
+
+    @property
+    def has_none(self):
+        # recursively check if any attribute is None
+        for attr, value in self.model_dump().items():
+            if value is None:
+                return True
+            if isinstance(value, BaseConfig):
+                if value.has_none:
+                    return True
+        return False

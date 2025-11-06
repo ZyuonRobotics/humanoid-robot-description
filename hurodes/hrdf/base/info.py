@@ -154,9 +154,9 @@ class InfoList:
         
         if single:
             if len(res) == 0:
-                raise ValueError(f"No info found with attr {attr_name} = {attr_value}")
+                raise ValueError(f"No info found with attr satisfies: {attr_name} == {attr_value} in info list {self.info_class.info_name}")
             elif len(res) > 1:
-                raise ValueError(f"Found multiple info with attr {attr_name} = {attr_value}")
+                raise ValueError(f"Found multiple info with attr satisfies: {attr_name} == {attr_value} in info list {self.info_class.info_name}")
             else:
                 return res[0]
         else:
