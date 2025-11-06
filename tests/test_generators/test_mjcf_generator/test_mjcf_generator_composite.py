@@ -25,7 +25,7 @@ class MockGenerator(MJCFGeneratorBase):
         # No specific cleanup needed for tests
         pass
 
-    def _generate(self, prefix=None, add_scene=True):
+    def _generate(self, prefix=None, add_scene=True, relative_mesh_path=True):
         # Add asset/mesh and compiler/meshdir for testing
         asset = self.get_elem("asset")
         ET.SubElement(asset, "mesh", name=self._mesh_name, file=self._mesh_file)
