@@ -1,6 +1,4 @@
 import numpy as np
-from scipy.linalg import null_space
-from scipy.optimize import least_squares
 import time
 try:
     from numba import jit

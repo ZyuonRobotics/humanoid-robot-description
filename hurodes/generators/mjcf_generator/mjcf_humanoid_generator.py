@@ -136,6 +136,8 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
             prefix: Optional prefix for IMU names
         """
         for imu_config in self.imu_configs:
+            if imu_config.has_none: # skip config containing none
+                continue
             found_body = False
             for body_elem in self.get_elem("worldbody").findall("body"):
                 if body_elem.attrib["name"] == get_prefix_name(prefix, imu_config.body_name):

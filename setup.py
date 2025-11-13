@@ -46,7 +46,8 @@ setup(
         "bidict",
         "PyYAML>=6.0",
         "pydantic>=2.0",
-        "mujoco>=3.3.0"
+        "mujoco>=3.3.0",
+        "scipy>=1.10.0"
     ],
     extras_require={
         "dev": [
@@ -60,11 +61,15 @@ setup(
             "trimesh>=4.5.10",
             "fast-simplification>=0.1.11",
         ],
-        "hal": ["casadi>=3.5.0"],
+        "hal": [
+            "casadi>=3.5.0",
+            "numba>=0.57.0"
+        ],
         "all": [
             "trimesh>=4.5.10",
             "fast-simplification>=0.1.11",
             "casadi>=3.5.0",
+            "numba>=0.57.0"
         ]
     },
     entry_points={

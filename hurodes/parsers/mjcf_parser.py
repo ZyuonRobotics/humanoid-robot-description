@@ -73,8 +73,13 @@ class HumanoidMJCFParser(BaseParser):
                 geom_info = SimpleGeomInfo.from_mujoco(geom_model, geom_spec, whole_spec=spec)
                 self.hrdf.add_info("simple_geom", geom_info)
 
-        if ground_dict is None:
-            self.simulator_dict["ground"] = {}
+        if ground_dict is None: # maybe from urdf, use default result
+            self.simulator_dict["ground"] = {
+                "contact_affinity": 1,
+                "contact_type": 1,
+                "friction": 1.0,
+                "type": "plane",
+            }
         else:
             self.simulator_dict["ground"] = ground_dict
 

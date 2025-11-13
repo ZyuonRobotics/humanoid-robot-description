@@ -14,25 +14,25 @@ from hurodes.joint_mapping.joint_mapping_config import JointMappingConfig
 
 
 class GroundConfig(BaseConfig):
-    type: str = None
-    contact_affinity: int = None
-    contact_type: int = None
-    friction: float = None
+    type: Optional[str] = None
+    contact_affinity: Optional[int] = None
+    contact_type: Optional[int] = None
+    friction: Optional[float] = None
 
 class SimulatorConfig(BaseConfig):
-    timestep: float = None
-    gravity: list[float] = None
-    ground: GroundConfig = None
+    timestep: Optional[float] = None
+    gravity: Optional[list[float]] = None
+    ground: Optional[GroundConfig] = None
 
 class BodyNameConfig(BaseConfig):
-    torso_name: str = None
-    hip_names: list[str] = None
-    knee_names: list[str] = None
-    foot_names: list[str] = None
+    torso_name: Optional[str] = None
+    hip_names: Optional[list[str]] = None
+    knee_names: Optional[list[str]] = None
+    foot_names: Optional[list[str]] = None
 
 class DeviceConfig(BaseConfig):
-    device_type: str = None
-    device_config_name: str = None
+    device_type: Optional[str] = None
+    device_config_name: Optional[str] = None
 
     @property
     def name(self):
@@ -42,10 +42,10 @@ class DeviceConfig(BaseConfig):
             return None
 
 class IMUConfig(DeviceConfig):
-    position: list[float] = None
-    orientation: list[float] = None
-    body_name: str = None
-    value: list[str] = None
+    position: Optional[list[float]] = None
+    orientation: Optional[list[float]] = None
+    body_name: Optional[str] = None
+    value: Optional[list[str]] = None
 
 class MotorConfig(DeviceConfig):
     pass
@@ -53,18 +53,18 @@ class MotorConfig(DeviceConfig):
 class HRDF(BaseConfig):
     model_config = {"arbitrary_types_allowed": True}
     
-    robot_name: str = None
+    robot_name: str = None # must be set
     # from meta.yaml
-    body_parent_id: list[int] = None
-    mesh_file_type: str = None
-    simulator_config: SimulatorConfig = None
-    body_name_config: BodyNameConfig = None
-    imu_config_list: list[IMUConfig] = None
-    motor_config_list: list[MotorConfig] = None
+    body_parent_id: list[int] = None # must be set
+    mesh_file_type: Optional[str] = None
+    simulator_config: Optional[SimulatorConfig] = None
+    body_name_config: Optional[BodyNameConfig] = None
+    imu_config_list: Optional[list[IMUConfig]] = None
+    motor_config_list: Optional[list[MotorConfig]] = None
     # from joint_mapping.yaml
-    joint_mapping_config: JointMappingConfig = None
+    joint_mapping_config: Optional[JointMappingConfig] = None
     # from component CSV files
-    info_list_dict: dict[str, InfoList] = None
+    info_list_dict: Optional[dict[str, InfoList]] = None
 
     @classmethod
     def from_dir(cls, hrdf_path: Union[Path, str]):
@@ -130,7 +130,8 @@ class HRDF(BaseConfig):
         self.info_list_dict[info_name].append(info)
 
     def get_info_by_attr(self, attr_name: str, attr_value: str, info_name: str, single=False):
-        assert info_name in INFO_CLASS_DICT, f"Info name {info_name} not found"
+        if info_name not in self.info_list_dict:
+            return []
         return self.info_list_dict[info_name].get_info_by_attr(attr_name, attr_value, single)
     
     def get_info_data_dict(self, info_name: str, key_attr: str, value_attr: str):
