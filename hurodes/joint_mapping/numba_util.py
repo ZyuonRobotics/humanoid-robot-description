@@ -3,8 +3,10 @@ try:
     NUMBA_AVAILABLE = True
 except ImportError:
     NUMBA_AVAILABLE = False
-    jit = lambda x: x  # fallback to no-op decorator
-import numpy as np
+    def jit(func=None, **kwargs):
+        if func is None:
+            return lambda f: f
+        return func
 
 
 @jit(nopython=True, fastmath=True, cache=True)

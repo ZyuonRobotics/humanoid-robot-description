@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
-
 class BaseSolver(ABC):
     def __init__(self, solver_params: dict):
         self.solver_params = solver_params

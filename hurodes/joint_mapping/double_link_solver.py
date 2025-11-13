@@ -5,7 +5,10 @@ try:
     NUMBA_AVAILABLE = True
 except ImportError:
     NUMBA_AVAILABLE = False
-    jit = lambda x: x  # fallback to no-op decorator
+    def jit(func=None, **kwargs):
+        if func is None:
+            return lambda f: f
+        return func
 
 try:
     import casadi as ca
@@ -60,11 +63,9 @@ def func(J, q_m, q_m0, q_j, alpha, d1, d2, h1, h2, r1, r2, u_x, u_z):
 
 class DoubleLinkSolver(BaseSolver):
     def __init__(self, solver_params: dict):
-        if not CASADI_AVAILABLE:
-            raise ImportError(
-                "CasADi is required for DoubleLinkSolver. "
-                "Please install it with: pip install 'hurodes[hal]' or pip install casadi"
-            )
+        if not NUMBA_AVAILABLE or not CASADI_AVAILABLE:
+            raise ImportError("Numba and CasADi are required for this functionality. Please install it with: pip install 'hurodes[hal]'")
+        
         super().__init__(solver_params)
         self.jacobian_func = self._generate_jacobian_func()
         self.last_joint_pos = np.zeros(2)

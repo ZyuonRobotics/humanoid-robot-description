@@ -5,12 +5,17 @@ except ImportError:
     CASADI_AVAILABLE = False
     ca = None
 
+def check_casadi_available():
+    if not CASADI_AVAILABLE:
+        raise ImportError("CasADi is required for this functionality. Please install it with: pip install 'hurodes[hal]'")
+
 def euler_to_rotmat(roll, pitch, yaw):
     """
     Convert Euler angles (ZYX, yaw-pitch-roll) to rotation matrix
     Input: roll, pitch, yaw (casadi.SX or casadi.MX or float)
     Output: 3x3 rotation matrix (casadi.SX)
     """
+    check_casadi_available()
     cr = ca.cos(roll)
     sr = ca.sin(roll)
     cp = ca.cos(pitch)
@@ -26,6 +31,7 @@ def euler_to_rotmat(roll, pitch, yaw):
     return R
 
 def get_phi(p_u, p_a, h, r):
+    check_casadi_available()
     d_ly = p_a[1] - p_u[1]
     l_xz = ca.sqrt(h**2 - d_ly**2)
 
@@ -42,6 +48,7 @@ def get_phi(p_u, p_a, h, r):
     return -phi * ca.sign(p_u[0])
 
 def double_link_inverse(pitch, roll, d1, d2, h1, h2, r1, r2, u_x, u_z):
+    check_casadi_available()
     p_lu_3 = ca.vertcat(u_x, +d1, u_z)
     p_ru_3 = ca.vertcat(u_x, -d2, u_z)
     p_la_1 = ca.vertcat(0.0, +d1, h1)
@@ -59,6 +66,7 @@ def fast_2x2_inverse(A):
     Input: A (casadi.SX or casadi.MX)
     Output: inverse of A (casadi.SX)
     """
+    check_casadi_available()
     if A.shape != (2, 2):
         raise ValueError("This function is only for 2x2 matrices")
     
