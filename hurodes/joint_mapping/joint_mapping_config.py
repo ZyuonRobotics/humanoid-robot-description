@@ -23,7 +23,7 @@ class JointMappingConfig(BaseConfig):
     motor_id_list: list[int] = []
     solver_config_dict: dict[str, SolverConfig] = {}
 
-    negative_list: list[int] = []
+    negative_motor_idx_list: list[int] = []
     # nx1 matrix
     mapping_matrix: np.ndarray = Field(default=None, init=False, exclude=True)
 
@@ -33,7 +33,7 @@ class JointMappingConfig(BaseConfig):
 
     def model_post_init(self, __context: any):
         assert len(self.motor_id_list) == len(set(self.motor_id_list)), f"Motor IDs must be unique: {self.motor_id_list}"
-        assert len(self.negative_list) == len(set(self.negative_list)), f"Negative list must be unique: {self.negative_list}"
+        assert len(self.negative_motor_idx_list) == len(set(self.negative_motor_idx_list)), f"Negative list must be unique: {self.negative_motor_idx_list}"
         self._generate_mapping_matrix()
 
         motor_found = np.zeros(self.motor_num, dtype=bool)
@@ -114,7 +114,7 @@ class JointMappingConfig(BaseConfig):
 
     def _generate_mapping_matrix(self):
         self.mapping_matrix = np.ones(len(self.motor_id_list))
-        self.mapping_matrix[self.negative_list] = -1
+        self.mapping_matrix[self.negative_motor_idx_list] = -1
 
     def pvt_transform(self, joint_pvt: np.ndarray):
         assert len(joint_pvt) == len(self.motor_id_list), f"Joint PVT must have {len(self.motor_id_list)}, got {len(joint_pvt)}."
@@ -123,6 +123,7 @@ class JointMappingConfig(BaseConfig):
 if __name__ == "__main__":
     from hurodes import ROBOTS_PATH
     config = JointMappingConfig.from_yaml(ROBOTS_PATH / "zhaplin-10dof" / "joint_mapping.yaml")
+    print(f"config: {config}")
     
     joint_pos = np.random.rand(config.motor_num)
     joint_vel = np.random.rand(config.motor_num)
