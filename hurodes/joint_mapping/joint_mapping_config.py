@@ -49,7 +49,7 @@ class JointMappingConfig(BaseConfig):
     def joint2motor_pos(self, joint_pos: np.ndarray):
         res = joint_pos.copy()
         for solver_config in self.solver_config_dict.values():
-            res[solver_config.joint_idx_list] = solver_config.solver.joint2motor_pos(joint_pos[solver_config.joint_idx_list])
+            res[solver_config.motor_idx_list] = solver_config.solver.joint2motor_pos(joint_pos[solver_config.joint_idx_list])
         res = self.pvt_transform(res)
         return res
 
@@ -57,13 +57,13 @@ class JointMappingConfig(BaseConfig):
         motor_pos = self.pvt_transform(motor_pos)
         res = motor_pos.copy()
         for solver_config in self.solver_config_dict.values():
-            res[solver_config.motor_idx_list] = solver_config.solver.motor2joint_pos(motor_pos[solver_config.motor_idx_list])
+            res[solver_config.joint_idx_list] = solver_config.solver.motor2joint_pos(motor_pos[solver_config.motor_idx_list])
         return res
 
     def joint2motor_vel(self, joint_pos: np.ndarray, joint_vel: np.ndarray):
         res = joint_vel.copy()
         for solver_config in self.solver_config_dict.values():
-            res[solver_config.joint_idx_list] = solver_config.solver.joint2motor_vel(joint_pos[solver_config.joint_idx_list], joint_vel[solver_config.joint_idx_list])
+            res[solver_config.motor_idx_list] = solver_config.solver.joint2motor_vel(joint_pos[solver_config.joint_idx_list], joint_vel[solver_config.joint_idx_list])
         res = self.pvt_transform(res)
         return res
 
@@ -71,13 +71,13 @@ class JointMappingConfig(BaseConfig):
         motor_vel = self.pvt_transform(motor_vel)
         res = motor_vel.copy()
         for solver_config in self.solver_config_dict.values():
-            res[solver_config.motor_idx_list] = solver_config.solver.motor2joint_vel(joint_pos[solver_config.joint_idx_list], motor_vel[solver_config.motor_idx_list])
+            res[solver_config.joint_idx_list] = solver_config.solver.motor2joint_vel(joint_pos[solver_config.joint_idx_list], motor_vel[solver_config.motor_idx_list])
         return res
 
     def joint2motor_torque(self, joint_pos: np.ndarray, joint_torque: np.ndarray):
         res = joint_torque.copy()
         for solver_config in self.solver_config_dict.values():
-            res[solver_config.joint_idx_list] = solver_config.solver.joint2motor_torque(joint_pos[solver_config.joint_idx_list], joint_torque[solver_config.joint_idx_list])
+            res[solver_config.motor_idx_list] = solver_config.solver.joint2motor_torque(joint_pos[solver_config.joint_idx_list], joint_torque[solver_config.joint_idx_list])
         res = self.pvt_transform(res)
         return res
 
@@ -85,7 +85,7 @@ class JointMappingConfig(BaseConfig):
         motor_torque = self.pvt_transform(motor_torque)
         res = motor_torque.copy()
         for solver_config in self.solver_config_dict.values():
-            res[solver_config.motor_idx_list] = solver_config.solver.motor2joint_torque(joint_pos[solver_config.joint_idx_list], motor_torque[solver_config.motor_idx_list])
+            res[solver_config.joint_idx_list] = solver_config.solver.motor2joint_torque(joint_pos[solver_config.joint_idx_list], motor_torque[solver_config.motor_idx_list])
         return res
 
     def motor2joint(self, motor_pos: np.ndarray, motor_vel: np.ndarray, motor_torque: np.ndarray):
@@ -122,6 +122,8 @@ if __name__ == "__main__":
     print(f"config: {config}")
     
     joint_pos = np.random.rand(config.motor_num)
+    joint_pos[3] = 0.1
+    joint_pos[4] = 0.2
     joint_vel = np.random.rand(config.motor_num)
     joint_torque = np.random.rand(config.motor_num)
 
@@ -132,6 +134,10 @@ if __name__ == "__main__":
     recovered_joint_pos = config.motor2joint_pos(motor_pos)
     recovered_joint_vel = config.motor2joint_vel(joint_pos, motor_vel)
     recovered_joint_torque = config.motor2joint_torque(joint_pos, motor_torque)
+
+    print(f"joint_pos: {joint_pos[3:5]}")
+    print(f"motor_pos: {motor_pos[3:5]}")
+    print(f"recovered: {recovered_joint_pos[3:5]}")
 
     print(np.linalg.norm(joint_pos - recovered_joint_pos))
     print(np.linalg.norm(joint_vel - recovered_joint_vel))
