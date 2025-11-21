@@ -47,10 +47,10 @@ class JointMappingConfig(BaseConfig):
         assert all(motor_found == joint_found), f"Motor and joint indices must match: {motor_found} != {joint_found}"
 
     def joint2motor_pos(self, joint_pos: np.ndarray):
-        joint_pos = self.pvt_transform(joint_pos)
         res = np.zeros_like(joint_pos)
         for solver_config in self.solver_config_dict.values():
             res[solver_config.joint_idx_list] = solver_config.solver.joint2motor_pos(joint_pos[solver_config.joint_idx_list])
+        res = self.pvt_transform(res)
         return res
 
     def motor2joint_pos(self, motor_pos: np.ndarray):
@@ -61,15 +61,13 @@ class JointMappingConfig(BaseConfig):
         return res
 
     def joint2motor_vel(self, joint_pos: np.ndarray, joint_vel: np.ndarray):
-        joint_pos = self.pvt_transform(joint_pos)
-        joint_vel = self.pvt_transform(joint_vel)
         res = np.zeros_like(joint_vel)
         for solver_config in self.solver_config_dict.values():
             res[solver_config.joint_idx_list] = solver_config.solver.joint2motor_vel(joint_pos[solver_config.joint_idx_list], joint_vel[solver_config.joint_idx_list])
+        res = self.pvt_transform(res)
         return res
 
     def motor2joint_vel(self, joint_pos: np.ndarray, motor_vel: np.ndarray):
-        joint_pos = self.pvt_transform(joint_pos)
         motor_vel = self.pvt_transform(motor_vel)
         res = np.zeros_like(motor_vel)
         for solver_config in self.solver_config_dict.values():
@@ -77,15 +75,13 @@ class JointMappingConfig(BaseConfig):
         return res
 
     def joint2motor_torque(self, joint_pos: np.ndarray, joint_torque: np.ndarray):
-        joint_pos = self.pvt_transform(joint_pos)
-        joint_torque = self.pvt_transform(joint_torque)
         res = np.zeros_like(joint_torque)
         for solver_config in self.solver_config_dict.values():
             res[solver_config.joint_idx_list] = solver_config.solver.joint2motor_torque(joint_pos[solver_config.joint_idx_list], joint_torque[solver_config.joint_idx_list])
+        res = self.pvt_transform(res)
         return res
 
     def motor2joint_torque(self, joint_pos: np.ndarray, motor_torque: np.ndarray):
-        joint_pos = self.pvt_transform(joint_pos)
         motor_torque = self.pvt_transform(motor_torque)
         res = np.zeros_like(motor_torque)
         for solver_config in self.solver_config_dict.values():
