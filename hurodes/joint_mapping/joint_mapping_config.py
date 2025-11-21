@@ -45,13 +45,6 @@ class JointMappingConfig(BaseConfig):
             joint_found[solver_config.joint_idx_list] = True
         
         assert all(motor_found == joint_found), f"Motor and joint indices must match: {motor_found} != {joint_found}"
-        if (~motor_found).sum() > 0:
-            self.solver_config_dict["direct"] = SolverConfig(
-                solver_type="direct", 
-                solver_params={}, 
-                joint_idx_list=np.where(~motor_found)[0].tolist(), 
-                motor_idx_list=np.where(~joint_found)[0].tolist()
-            )
 
     def joint2motor_pos(self, joint_pos: np.ndarray):
         joint_pos = self.pvt_transform(joint_pos)
