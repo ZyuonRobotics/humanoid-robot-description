@@ -110,6 +110,7 @@ class JointMappingConfig(BaseConfig):
 
 if __name__ == "__main__":
     from hurodes import ROBOTS_PATH
+    from time import perf_counter
     config = JointMappingConfig.from_yaml(ROBOTS_PATH / "zhaplin-10dof" / "joint_mapping.yaml")
     print(f"config: {config}")
     
@@ -119,17 +120,53 @@ if __name__ == "__main__":
     joint_vel = np.random.rand(config.motor_num)
     joint_torque = np.random.rand(config.motor_num)
 
-    motor_pos = config.joint2motor_pos(joint_pos)
-    motor_vel = config.joint2motor_vel(joint_pos, joint_vel)
-    motor_torque = config.joint2motor_torque(joint_pos, joint_torque)
+    print("=" * 60)
+    print("single test")
 
-    recovered_joint_pos = config.motor2joint_pos(motor_pos)
-    recovered_joint_vel = config.motor2joint_vel(joint_pos, motor_vel)
-    recovered_joint_torque = config.motor2joint_torque(joint_pos, motor_torque)
+    N = 1000
+    time0 = perf_counter()
+    for _ in range(N):
+        motor_pos = config.joint2motor_pos(joint_pos)
+        motor_vel = config.joint2motor_vel(joint_pos, joint_vel)
+        motor_torque = config.joint2motor_torque(joint_pos, joint_torque)
+    time1 = perf_counter()
+    time_cost = time1 - time0
+    print(f"Time cost joint2motor: {1e3*time_cost/N:.6f} ms")
+
+    time0 = perf_counter()
+    for _ in range(N):
+        recovered_joint_pos = config.motor2joint_pos(motor_pos)
+        recovered_joint_vel = config.motor2joint_vel(joint_pos, motor_vel)
+        recovered_joint_torque = config.motor2joint_torque(joint_pos, motor_torque)
+    time1 = perf_counter()
+    time_cost = time1 - time0
+    print(f"Time cost motor2joint: {1e3*time_cost/N:.6f} ms")
+
 
     print(f"joint_pos: {joint_pos[3:5]}")
     print(f"motor_pos: {motor_pos[3:5]}")
     print(f"recovered: {recovered_joint_pos[3:5]}")
+
+    print("=" * 60)
+    print("batch test")
+
+    time0 = perf_counter()
+    for _ in range(N):
+        recovered_motor_pos, recovered_motor_vel, recovered_motor_torque = config.motor2joint(joint_pos, joint_vel, joint_torque)
+    time1 = perf_counter()
+    time_cost = time1 - time0
+    print(f"Time cost motor2joint: {1e3*time_cost/N:.6f} ms")
+
+    time0 = perf_counter()
+    for _ in range(N):
+        recovered_joint_pos, recovered_joint_vel, recovered_joint_torque = config.joint2motor(recovered_motor_pos, recovered_motor_vel, recovered_motor_torque)
+    time1 = perf_counter()
+    time_cost = time1 - time0
+    print(f"Time cost joint2motor: {1e3*time_cost/N:.6f} ms")
+
+    print(f"joint_pos: {joint_pos[:5]}")
+    print(f"motor_pos: {recovered_motor_pos[:5]}")
+    print(f"recovered: {recovered_joint_pos[:5]}")
 
     print(np.linalg.norm(joint_pos - recovered_joint_pos))
     print(np.linalg.norm(joint_vel - recovered_joint_vel))
