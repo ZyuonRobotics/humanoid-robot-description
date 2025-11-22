@@ -19,13 +19,20 @@ class SolverConfig(BaseConfig):
         assert len(self.joint_idx_list) == len(self.motor_idx_list), f"Number of joint indices must match number of motor indices: {len(self.joint_idx_list)} != {len(self.motor_idx_list)}"
 
 class JointMappingConfig(BaseConfig):
+    """
+    # The mapping consists of three parts:
+    # 1. Mapping between motor IDs and motor indices.
+    # 2. Mapping of the direction for motor indices.
+    # 3. Mapping between motor indices and joint indices (currently only parallel linkage mapping is supported).
+    # For reading: First apply the direction mapping, then use the parallel linkage mapping to get the joint index (if parallel linkage mapping exists).
+    # For writing: First use the parallel linkage mapping to get the motor index (if parallel linkage mapping exists), then apply the direction mapping.
+    """
     model_config = {"arbitrary_types_allowed": True}
     motor_id_list: list[int] = []
     solver_config_dict: dict[str, SolverConfig] = {}
 
     negative_motor_idx_list: list[int] = []
-    # nx1 matrix
-    mapping_matrix: np.ndarray = Field(default=None, init=False, exclude=True)
+    oritation_mapping: np.ndarray = Field(default=None, init=False, exclude=True)
 
     @property
     def motor_num(self):
@@ -34,7 +41,8 @@ class JointMappingConfig(BaseConfig):
     def model_post_init(self, __context: any):
         assert len(self.motor_id_list) == len(set(self.motor_id_list)), f"Motor IDs must be unique: {self.motor_id_list}"
         assert len(self.negative_motor_idx_list) == len(set(self.negative_motor_idx_list)), f"Negative list must be unique: {self.negative_motor_idx_list}"
-        self._generate_mapping_matrix()
+        # generate_oritation_mapping
+        self.oritation_mapping = np.where(np.isin(np.arange(len(self.motor_id_list)), self.negative_motor_idx_list), -1, 1)
 
         motor_found = np.zeros(self.motor_num, dtype=bool)
         joint_found = np.zeros(self.motor_num, dtype=bool)
@@ -50,11 +58,11 @@ class JointMappingConfig(BaseConfig):
         res = joint_pos.copy()
         for solver_config in self.solver_config_dict.values():
             res[solver_config.motor_idx_list] = solver_config.solver.joint2motor_pos(joint_pos[solver_config.joint_idx_list])
-        res = self.pvt_transform(res)
+        res = self.oritation_transform(res)
         return res
 
     def motor2joint_pos(self, motor_pos: np.ndarray):
-        motor_pos = self.pvt_transform(motor_pos)
+        motor_pos = self.oritation_transform(motor_pos)
         res = motor_pos.copy()
         for solver_config in self.solver_config_dict.values():
             res[solver_config.joint_idx_list] = solver_config.solver.motor2joint_pos(motor_pos[solver_config.motor_idx_list])
@@ -64,11 +72,11 @@ class JointMappingConfig(BaseConfig):
         res = joint_vel.copy()
         for solver_config in self.solver_config_dict.values():
             res[solver_config.motor_idx_list] = solver_config.solver.joint2motor_vel(joint_pos[solver_config.joint_idx_list], joint_vel[solver_config.joint_idx_list])
-        res = self.pvt_transform(res)
+        res = self.oritation_transform(res)
         return res
 
     def motor2joint_vel(self, joint_pos: np.ndarray, motor_vel: np.ndarray):
-        motor_vel = self.pvt_transform(motor_vel)
+        motor_vel = self.oritation_transform(motor_vel)
         res = motor_vel.copy()
         for solver_config in self.solver_config_dict.values():
             res[solver_config.joint_idx_list] = solver_config.solver.motor2joint_vel(joint_pos[solver_config.joint_idx_list], motor_vel[solver_config.motor_idx_list])
@@ -78,11 +86,11 @@ class JointMappingConfig(BaseConfig):
         res = joint_torque.copy()
         for solver_config in self.solver_config_dict.values():
             res[solver_config.motor_idx_list] = solver_config.solver.joint2motor_torque(joint_pos[solver_config.joint_idx_list], joint_torque[solver_config.joint_idx_list])
-        res = self.pvt_transform(res)
+        res = self.oritation_transform(res)
         return res
 
     def motor2joint_torque(self, joint_pos: np.ndarray, motor_torque: np.ndarray):
-        motor_torque = self.pvt_transform(motor_torque)
+        motor_torque = self.oritation_transform(motor_torque)
         res = motor_torque.copy()
         for solver_config in self.solver_config_dict.values():
             res[solver_config.joint_idx_list] = solver_config.solver.motor2joint_torque(joint_pos[solver_config.joint_idx_list], motor_torque[solver_config.motor_idx_list])
@@ -100,13 +108,10 @@ class JointMappingConfig(BaseConfig):
         motor_torque = self.joint2motor_torque(joint_pos, joint_torque)
         return motor_pos, motor_vel, motor_torque
 
-    def _generate_mapping_matrix(self):
-        self.mapping_matrix = np.ones(len(self.motor_id_list))
-        self.mapping_matrix[self.negative_motor_idx_list] = -1
-
-    def pvt_transform(self, joint_pvt: np.ndarray):
-        assert len(joint_pvt) == len(self.motor_id_list), f"Joint PVT must have {len(self.motor_id_list)}, got {len(joint_pvt)}."
-        return self.mapping_matrix * joint_pvt
+    def oritation_transform(self, value_array: np.ndarray):
+        # apply the oritation mapping to the value array(position, velocity or torque) in the motor space or the joint space
+        assert len(value_array) == len(self.motor_id_list), f"Value array must have {len(self.motor_id_list)}, got {len(value_array)}."
+        return self.oritation_mapping * value_array
 
 if __name__ == "__main__":
     from hurodes import ROBOTS_PATH
