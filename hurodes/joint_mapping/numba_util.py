@@ -1,3 +1,4 @@
+import numpy as np
 try:
     from numba import jit
     NUMBA_AVAILABLE = True
