@@ -63,12 +63,9 @@ def func(J, q_m, q_m0, q_j, alpha, d1, d2, h1, h2, r1, r2, u_x, u_z):
 
 class DoubleLinkSolver(BaseSolver):
     def __init__(self, solver_params: dict):
-        if not NUMBA_AVAILABLE or not CASADI_AVAILABLE:
-            raise ImportError("Numba and CasADi are required for this functionality. Please install it with: pip install 'hurodes[hal]'")
-        
         super().__init__(solver_params)
-        self.jacobian_func = self._generate_jacobian_func()
-        self.last_joint_pos = np.zeros(2)
+        self._jacobian_func = None
+        self._last_joint_pos = np.zeros(2)
 
     def joint2motor_pos(self, joint_pos: np.ndarray):
         """
@@ -84,13 +81,15 @@ class DoubleLinkSolver(BaseSolver):
         motor_pos = np.array([float(phi_l), float(phi_r)])
         return motor_pos
 
-    def _generate_jacobian_func(self):
-        roll = ca.SX.sym('roll')
-        pitch = ca.SX.sym('pitch')
-        phi_l, phi_r = casadi_uitl.double_link_inverse(pitch, roll, **self.solver_params)
-        jac = ca.jacobian(ca.vertcat(phi_l, phi_r), ca.vertcat(pitch, roll))
-        func = ca.Function('jacobian', [pitch, roll], [jac])
-        return func
+    @property
+    def jacobian_func(self):
+        if self._jacobian_func is None:
+            roll = ca.SX.sym('roll')
+            pitch = ca.SX.sym('pitch')
+            phi_l, phi_r = casadi_uitl.double_link_inverse(pitch, roll, **self.solver_params)
+            jac = ca.jacobian(ca.vertcat(phi_l, phi_r), ca.vertcat(pitch, roll))
+            self._jacobian_func = ca.Function('jacobian', [pitch, roll], [jac])
+        return self._jacobian_func
 
     def motor2joint_pos(self, motor_pos: np.ndarray):
         """
@@ -100,8 +99,8 @@ class DoubleLinkSolver(BaseSolver):
         Args:
             motor_pos: Motor positions
         """
-        q_j, err, iter_count = solve_ik_numba(self.last_joint_pos, motor_pos, self.jacobian_func, self.solver_params)
-        self.last_joint_pos = q_j
+        q_j, err, iter_count = solve_ik_numba(self._last_joint_pos, motor_pos, self.jacobian_func, self.solver_params)
+        self._last_joint_pos = q_j
         return q_j
 
     def joint2motor_vel(self, joint_pos: np.ndarray, joint_vel: np.ndarray):
