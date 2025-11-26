@@ -128,6 +128,21 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
             actuator_info = self.get_info_by_attr("joint_name", joint_info["name"].data, "actuator", single=True)
             ET.SubElement(actuator_elem, 'motor', attrib=actuator_info.to_mujoco_dict(prefix=prefix))
 
+    def add_sensors(self, prefix=None):
+        """
+        Add sensors for the robot.
+        
+        Args:
+            prefix: Optional prefix for sensor names
+        """
+        self.add_imu(prefix=prefix)
+
+        sensor_elem = self.get_elem("sensor")
+        for body_info in self.info_list("body"):
+            body_name = get_prefix_name(prefix, body_info["name"].data)
+            ET.SubElement(sensor_elem, "framelinvel", attrib={"objtype":"xbody", "objname": body_name})
+            ET.SubElement(sensor_elem, "frameangvel", attrib={"objtype":"xbody", "objname": body_name})
+
     def add_imu(self, prefix=None):
         """
         Add IMUs for bodies.
@@ -174,6 +189,6 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
         self.add_mesh(prefix=prefix)
         self.recursive_generate_body(prefix=prefix)
         self.add_actuator(prefix=prefix)
-        self.add_imu(prefix=prefix)
+        self.add_sensors(prefix=prefix)
         if add_scene:
             self.add_scene()
