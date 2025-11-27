@@ -26,6 +26,9 @@ class MJCFGeneratorBase(GeneratorBase):
         Initialize the XML root element.
         """
         self._xml_root = ET.Element('mujoco')
+        robot_name = getattr(self, 'robot_name', None)
+        if robot_name is not None:
+            self._xml_root.set("model", robot_name)
         option_elem = ET.SubElement(self._xml_root, 'option')
         if self.simulator_config is not None:
             option_elem.set("timestep", str(self.simulator_config.timestep))
