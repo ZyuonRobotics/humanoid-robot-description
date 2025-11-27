@@ -12,7 +12,9 @@ from hurodes import ROBOTS_PATH
 @click.option("--format-type", type=str, default="mjcf", help="Format type", prompt="Format type")
 @click.option("--add-mujoco-tag/--not-add-mujoco-tag", type=bool, default=False, help="Whether to add MuJoCo tag to URDF")
 @click.option("--view/--not-view", type=bool, default=True, help="Whether to view the model")
-def main(robot_name, format_type, add_mujoco_tag, view):
+@click.option("--convert-to-obj/--not-convert-to-obj", type=bool, default=False, help="Convert STL files to OBJ format")
+@click.option("--absolute-mesh-path/--not-absolute-mesh-path", type=bool, default=False, help="Use absolute paths for meshdir")
+def main(robot_name, format_type, add_mujoco_tag, view, convert_to_obj, absolute_mesh_path):
     # Create HumanoidRobot instance from robot name
     robot = HumanoidRobot.from_name(robot_name)
     
@@ -21,21 +23,21 @@ def main(robot_name, format_type, add_mujoco_tag, view):
     
     if format_type == "mjcf":
         output_path = output_dir / "exported" / "robot.xml"
-        robot.export_mjcf(output_path)
+        robot.export_mjcf(output_path, relative_mesh_path=not absolute_mesh_path, convert_to_obj=convert_to_obj)
     elif format_type == "urdf":
         output_path = output_dir / "exported" / "robot.urdf"
-        robot.export_urdf(output_path, add_mujoco_tag=add_mujoco_tag)
+        robot.export_urdf(output_path, relative_mesh_path=not absolute_mesh_path, add_mujoco_tag=add_mujoco_tag)
     else:
         raise ValueError(f"Invalid format type: {format_type}")
 
     if view:
         if format_type == "mjcf":
             generator = robot.build_mjcf_generator()
-            generator.generate(relative_mesh_path=False)
+            generator.generate(relative_mesh_path=not absolute_mesh_path, convert_to_obj=convert_to_obj)
         elif format_type == "urdf":
             assert add_mujoco_tag, "MuJoCo tag is required to view URDF in MuJoCo viewer"
             generator = robot.build_urdf_generator()
-            generator.generate(relative_mesh_path=False, add_mujoco_tag=add_mujoco_tag)
+            generator.generate(relative_mesh_path=not absolute_mesh_path, add_mujoco_tag=add_mujoco_tag)
         else:
             raise ValueError(f"Invalid format type: {format_type}")
         m = mujoco.MjModel.from_xml_string(generator.xml_str) # type: ignore

@@ -1,8 +1,28 @@
 import shutil
+from pathlib import Path
 
 MUJOCO_MIN_FACES = 1
 MUJOCO_MAX_FACES = 200000
 
+
+def convert_stl_to_obj(input_path: Path, output_path: Path):
+    """
+    Convert STL file to OBJ file.
+    
+    Args:
+        input_path: Path to input STL file
+        output_path: Path to output OBJ file
+    """
+    try:
+        import trimesh
+    except ImportError:
+        raise ImportError("trimesh is not installed. Please install it with `pip install trimesh`")
+    
+    mesh = trimesh.load(str(input_path))
+    if isinstance(mesh, trimesh.Trimesh):
+        mesh.export(str(output_path))
+    else:
+        raise TypeError(f"Loaded mesh is not a trimesh.Trimesh object: {type(mesh)}")
 
 
 def simplify_obj(input_path, output_path, max_faces=8000):

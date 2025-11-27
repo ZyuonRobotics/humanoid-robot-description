@@ -1,8 +1,10 @@
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 from hurodes.generators.mjcf_generator.mjcf_generator_base import MJCFGeneratorBase
 from hurodes.generators.hrdf_mixin import HRDFMixin
 from hurodes.utils.string import get_prefix_name
+from hurodes.utils.mesh import convert_stl_to_obj
 
 MUJOCO_SENSOR_NAME = {
     "linacc": "accelerometer",
@@ -85,12 +87,13 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
             "meshdir": "../meshes" if relative_mesh_path else str(self.mesh_directory)
         }
     
-    def add_mesh(self, prefix=None):
+    def add_mesh(self, prefix=None, convert_to_obj=False):
         """
         Add mesh assets to the MJCF.
         
         Args:
             prefix: Optional prefix for mesh names
+            convert_to_obj: If True, convert STL files to OBJ and use OBJ file type
         """
         asset_elem = self.get_elem("asset")
         mesh_name_set = set()
@@ -103,9 +106,19 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
 
             self.validate_mesh_exists(mesh_name)
             
+            # Convert STL to OBJ if requested
+            if convert_to_obj and self.mesh_file_type == "stl":
+                stl_path = self.mesh_directory / f"{mesh_name}.stl"
+                obj_path = self.mesh_directory / f"{mesh_name}.obj"
+                if not obj_path.exists():
+                    convert_stl_to_obj(stl_path, obj_path)
+                file_ext = "obj"
+            else:
+                file_ext = self.mesh_file_type
+            
             ET.SubElement(asset_elem, 'mesh', attrib={
                 "name": get_prefix_name(prefix, mesh_name), 
-                "file": f"{mesh_name}.{self.mesh_file_type}"
+                "file": f"{mesh_name}.{file_ext}"
             })
             mesh_name_set.add(mesh_name)
 
@@ -162,16 +175,18 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
                 ET.SubElement(sensor_elem, sensor_name, attrib)
 
 
-    def _generate(self, prefix=None, add_scene=True, relative_mesh_path=True):
+    def _generate(self, prefix=None, add_scene=True, relative_mesh_path=True, convert_to_obj=False):
         """
         Generate the complete MJCF for the humanoid robot.
         
         Args:
             prefix: Optional prefix for element names
             add_scene: Whether to add scene elements
+            relative_mesh_path: Whether to use relative mesh paths
+            convert_to_obj: Whether to convert STL files to OBJ
         """
         self.add_compiler(relative_mesh_path=relative_mesh_path)
-        self.add_mesh(prefix=prefix)
+        self.add_mesh(prefix=prefix, convert_to_obj=convert_to_obj)
         self.recursive_generate_body(prefix=prefix)
         self.add_actuator(prefix=prefix)
         self.add_imu(prefix=prefix)
