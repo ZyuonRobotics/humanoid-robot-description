@@ -59,28 +59,3 @@ def double_link_inverse(pitch, roll, d1, d2, h1, h2, r1, r2, u_x, u_z):
     phi_l = get_phi(p_lu_1, p_la_1, h1, r1)
     phi_r = get_phi(p_ru_1, p_ra_1, h2, r2)
     return phi_l, phi_r
-
-def fast_2x2_inverse(A):
-    """
-    Convert 2x2 matrix to inverse using casadi
-    Input: A (casadi.SX or casadi.MX)
-    Output: inverse of A (casadi.SX)
-    """
-    check_casadi_available()
-    if A.shape != (2, 2):
-        raise ValueError("This function is only for 2x2 matrices")
-    
-    a, b = A[0, 0], A[0, 1]
-    c, d = A[1, 0], A[1, 1]
-    
-    det = a * d - b * c
-    
-    if abs(det) < 1e-14:
-        print("Warning: Matrix is nearly singular, using pseudo-inverse")
-        return ca.linalg.pinv(A)
-    
-    det_inv = 1.0 / det
-    return ca.vertcat(
-        ca.horzcat(d * det_inv, -b * det_inv), 
-        ca.horzcat(-c * det_inv, a * det_inv)
-    )
