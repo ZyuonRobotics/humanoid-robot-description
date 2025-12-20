@@ -7,9 +7,74 @@
 - 加载（`load()`）：将外部数据（通常保存在HURODES_ASSETS_PATH路径下）加载进Generator类，由各个子类完成加载和校验逻辑
 - 生成（`generate()`）：目前Generator类只支持生成xml文件（mjcf和urdf都是xml文件），`generate`函数用于根据已经加载的信息在`xml_root`上生成元素
 
-对于加载和生成，分别有一个用于重置的行为：
+对于加载（`load`）和生成（`generate`），分别有一个用于重置的行为：
 - 清理（`clean()`）：删除加载阶段加载的外部数据
 - 销毁（`destroy()`）：重置`xml_root`，清除生成阶段产生的结果
+
+Generator类及其子类的类图如下：
+
+```mermaid
+classDiagram
+    class GeneratorBase {
+        <<abstract>>
+        +xml_root
+        +loaded
+        +__init__()
+        +load(**kwargs)
+        +generate(**kwargs)
+        +export(file_path, **kwargs)
+        +clean()
+        +destroy()
+        +_load(**kwargs)*
+        +_generate(**kwargs)*
+        ...
+    }
+
+    class HRDFMixin {
+        <<mixin>>
+        +hrdf: HRDF
+        +_load(hrdf)
+        +from_hrdf(hrdf)
+        +from_hrdf_path(hrdf_path)
+        +from_robot_name(robot_name)
+        ...
+    }
+
+    class MJCFGeneratorBase {
+        +simulator_config: SimulatorConfig
+        +add_scene()
+        ...
+    }
+
+    class URDFGeneratorBase {
+        ...
+    }
+
+    class MJCFHumanoidGenerator {
+        +_generate(prefix, add_scene, relative_mesh_path)
+        ...
+    }
+
+    class URDFHumanoidGenerator {
+        +_generate(add_mujoco_tag, relative_mesh_path)
+        ...
+    }
+
+    class MJCFGeneratorComposite {
+        +generators: dict
+        +loaded
+        +_generate(prefix, add_scene, relative_mesh_path)
+        ...
+    }
+
+    GeneratorBase <|-- MJCFGeneratorBase
+    GeneratorBase <|-- URDFGeneratorBase
+    MJCFGeneratorBase <|-- MJCFGeneratorComposite
+    HRDFMixin <|-- MJCFHumanoidGenerator
+    MJCFGeneratorBase <|-- MJCFHumanoidGenerator
+    HRDFMixin <|-- URDFHumanoidGenerator
+    URDFGeneratorBase <|-- URDFHumanoidGenerator
+```
 
 在Generator基类中，我们实现了`export()`函数，他要求实例已经完成了加载，可以一步到位生成最终的xml字符串并保存到指定路径。
 
@@ -76,4 +141,97 @@ scene则与mujoco的特性有关，`MJCFGeneratorBase`实现了`add_scene()`函�
 - 合并mesh地址：自动寻找所有generator的mesh文件地址，计算所有mesh地址的公共路径，并修改每个mesh的相对路径
 
 ## URDFGenerator
+
+与MJCF不同，URDF是一个更加通用的机器人描述格式，被广泛应用于ROS生态系统中。`URDFGeneratorBase`提供了URDF格式的基础功能。
+
+### URDFHumanoidGenerator
+
+`URDFHumanoidGenerator`是用于生成人形机器人URDF描述文件的生成器。其主要特性包括：
+
+- **链接（Link）生成**：根据HRDF中的body信息生成URDF的link元素，包括惯性信息、碰撞几何体和视觉几何体
+- **关节（Joint）生成**：根据HRDF中的joint信息生成URDF的joint元素，包括关节类型、轴向、限位等信息
+- **MuJoCo标签支持**：通过`add_mujoco_tag`参数，可以在URDF中添加MuJoCo特定的标签，使得URDF可以被MuJoCo加载和使用
+
+### MJCF vs URDF：XML结构差异
+
+MJCF和URDF在XML组织方式上有本质区别，这直接影响了Generator的实现逻辑：
+
+**MJCF采用层次结构（Hierarchical）：**
+
+```xml
+<mujoco>
+  <worldbody>
+    <body name="torso">
+      <joint name="free"/>
+      <geom/>
+      <body name="left_leg">
+        <joint name="hip"/>
+        <geom/>
+        <body name="left_foot">
+          ...
+        </body>
+      </body>
+    </body>
+  </worldbody>
+</mujoco>
+```
+
+body元素嵌套在父body内部，形成树状结构。因此`MJCFHumanoidGenerator`使用`recursive_generate_body()`递归遍历父子关系：
+
+```
+    def recursive_generate_body(self, parent=None, current_index=-1, prefix=None):
+        ...
+
+        for child_index, parent_idx in enumerate(self.body_parent_id):
+            if parent_idx == current_index:
+                body_elem = self.generate_single_body_xml(parent, child_index, prefix=prefix)
+                self.recursive_generate_body(body_elem, child_index, prefix=prefix)
+```
+
+**URDF采用平铺结构（Flat）：**
+
+```xml
+<robot>
+  <link name="torso">...</link>
+  <link name="left_leg">...</link>
+  <link name="left_foot">...</link>
+  
+  <joint name="hip" type="revolute">
+    <parent link="torso"/>
+    <child link="left_leg"/>
+  </joint>
+  <joint name="ankle" type="revolute">
+    <parent link="left_leg"/>
+    <child link="left_foot"/>
+  </joint>
+</robot>
+```
+
+所有link和joint平铺在robot根元素下，通过joint的`<parent>`和`<child>`标签引用link名称建立关系。因此`URDFHumanoidGenerator`分别遍历生成：
+
+```
+    def _generate_links(self, add_mujoco_tag=False) -> dict:
+        ...
+        for body_info in body_info_list:
+            link_elem = ET.SubElement(self.xml_root, "link")
+            ...
+```
+
+```
+    def _generate_joints(self, add_mujoco_tag=False) -> dict:
+        ...
+        for joint_info in joint_info_list:
+            joint_elem = ET.SubElement(self.xml_root, "joint")
+            ...
+            # Add child body info to joint
+            child_body_info = self.get_info_by_attr("name", body_name, "body", single=True)
+            child_body_info.to_urdf_elem(joint_elem, "child")
+
+            # Add parent body info to joint
+            parent_body_id = self.body_parent_id[child_body_info["id"].data]
+            parent_body_info = self.get_info_by_attr("id", parent_body_id, "body", single=True)
+            parent_body_info.to_urdf_elem(joint_elem, "parent")
+```
+
+这种结构差异也导致了合成逻辑的不同：MJCF可以通过`MJCFGeneratorComposite`轻松合并多个机器人（因为可以直接将多个body树放在同一个worldbody下），而URDF由于是平铺结构，合并时需要处理可能的link/joint名称冲突。
 
