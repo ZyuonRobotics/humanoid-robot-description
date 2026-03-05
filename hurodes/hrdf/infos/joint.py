@@ -13,6 +13,13 @@ class Range(AttributeBase):
     default_value: tuple = (-3.14, 3.14)
 
 @dataclass
+class Type(AttributeBase):
+    name: str = "type"
+    urdf_path: tuple = ("type",)
+    default_value: str = "revolute"
+
+
+@dataclass
 class Armature(AttributeBase):
     name: str = "armature"
     mujoco_name: str = "armature"
@@ -42,6 +49,7 @@ class JointInfo(InfoBase):
     info_name = "JointInfo"
     attr_classes = (
         # joint attributes
+        Type,
         Armature,
         StitaticFriction,
         DynamicFriction,
@@ -70,15 +78,21 @@ class JointInfo(InfoBase):
         info_dict["body_name"] = elem.find("child").get("link").replace("-", "_")
         info_dict["pos"] = [0., 0., 0.]
         info_dict["axis"] = [float(x) for x in info_dict["axis"].split()]
+        info_dict["type"] = elem.get("type", "revolute")
         
         return info_dict
 
     def _specific_generate_mujoco(self, mujoco_dict, extra_dict, tag):
-        mujoco_dict["type"] = "hinge"
-        mujoco_dict["limited"] = "true"
+        joint_type = extra_dict["type"].to_string()
+        if joint_type == "fixed":
+            # For fixed joints, we don't need to set type or limited
+            pass
+        else:
+            mujoco_dict["type"] = "hinge"
+            mujoco_dict["limited"] = "true"
         return mujoco_dict
 
     def _specific_generate_urdf(self, urdf_dict, extra_dict, tag):
         del urdf_dict[('origin', 'xyz')]
-        urdf_dict[("type",)] = "revolute"
+        urdf_dict[("type",)] = extra_dict["type"].to_string()
         return urdf_dict
