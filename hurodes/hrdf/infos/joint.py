@@ -19,7 +19,7 @@ class Armature(AttributeBase):
     default_value: float = 0.05
 
 @dataclass
-class StitaticFriction(AttributeBase):
+class StaticFriction(AttributeBase):
     name: str = "static_friction"
     mujoco_name: str = "frictionloss"
     urdf_path: tuple = ("dynamics", "friction")
@@ -43,7 +43,7 @@ class JointInfo(InfoBase):
     attr_classes = (
         # joint attributes
         Armature,
-        StitaticFriction,
+        StaticFriction,
         DynamicFriction,
         ViscousFriction,
         # joint position

@@ -100,7 +100,16 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
             self.root.insert(1, dummy_joint)
 
     def fix_urdf_inerita(self):
-        for text_path in (self.file_path.parent.parent / "sw_inertia").iterdir():
+        sw_inertia_path = (self.file_path.parent.parent / "sw_inertia").resolve()
+
+        # Validate path to prevent path traversal attacks
+        # Ensure sw_inertia is a subdirectory of the URDF file's parent
+        try:
+            sw_inertia_path.relative_to(self.file_path.parent.parent.resolve())
+        except ValueError:
+            raise ValueError(f"Invalid path: sw_inertia directory must be within the URDF file's parent directory")
+
+        for text_path in sw_inertia_path.iterdir():
             assert text_path.is_file(), f"{text_path} is not a file"
             
             with open(text_path, "r") as f:

@@ -3,8 +3,6 @@ from typing import List, Type, Dict, Any, ClassVar, Optional, Union
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import re
-import xml.etree.ElementTree as ET
 
 from bidict import bidict
 

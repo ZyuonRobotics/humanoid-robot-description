@@ -2,9 +2,8 @@ from pathlib import Path
 from abc import ABC
 from typing import Optional, TYPE_CHECKING
 
-from hurodes.hrdf.hrdf import HRDF
+from hurodes.hrdf.hrdf import HRDF, IMUConfig
 from hurodes.generators.generator_base import GeneratorBase
-from hurodes.hrdf.hrdf import SimulatorConfig, IMUConfig
 from hurodes import ROBOTS_PATH
 from hurodes.hrdf.base.info import InfoList
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Union, Type
 
-from hurodes.hrdf.base.attribute import Position, Quaternion, Name, Id, AttributeBase, AttributeBase
+from hurodes.hrdf.base.attribute import Position, Quaternion, Name, Id, AttributeBase
 from hurodes.hrdf.base.info import InfoBase
 from hurodes.utils.convert import str_quat2rpy, str_rpy2quat
 from hurodes.utils.xml import extract_attr_from_elem
