@@ -143,19 +143,40 @@ class MJCFHumanoidGenerator(HRDFMixin, MJCFGeneratorBase):
             ET.SubElement(sensor_elem, "framelinvel", attrib={"objtype":"xbody", "objname": body_name})
             ET.SubElement(sensor_elem, "frameangvel", attrib={"objtype":"xbody", "objname": body_name})
 
+    def _find_all_bodies(self, elem):
+        """
+        Recursively find all body elements under the given element.
+
+        Args:
+            elem: XML element to search under
+
+        Returns:
+            List of all body elements found (recursively)
+        """
+        bodies = []
+        for child in elem:
+            if child.tag == "body":
+                bodies.append(child)
+                bodies.extend(self._find_all_bodies(child))
+        return bodies
+
     def add_imu(self, prefix=None):
         """
         Add IMUs for bodies.
-        
+
         Args:
             prefix: Optional prefix for IMU names
         """
+        worldbody = self.get_elem("worldbody")
+        all_bodies = self._find_all_bodies(worldbody)
+
         for imu_config in self.imu_configs:
-            if imu_config.has_none: # skip config containing none
+            if imu_config.has_none:  # skip config containing none
                 continue
             found_body = False
-            for body_elem in self.get_elem("worldbody").findall("body"):
-                if body_elem.attrib["name"] == get_prefix_name(prefix, imu_config.body_name):
+            target_name = get_prefix_name(prefix, imu_config.body_name)
+            for body_elem in all_bodies:
+                if body_elem.attrib["name"] == target_name:
                     ET.SubElement(body_elem, 'site', attrib={
                         "name": get_prefix_name(prefix, imu_config.name),
                         "pos": " ".join([str(x) for x in imu_config.position]),
