@@ -1,5 +1,5 @@
 from colorama import Fore, Style
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, List
 import re
 
 def get_elem_tree_str(elem, indent=0, elem_tag="body", colorful=False):
@@ -43,7 +43,7 @@ def filter_str_list(str_list: list[str], pos_strings: list[str] = None, neg_stri
             res.append(string)
     return res
 
-def parse_inertia_file(content: str) -> Optional[Tuple[str, float, Dict[str, float]]]:
+def parse_inertia_file(content: str) -> Optional[Tuple[str, float, Dict[str, float], List[str]]]:
     coord_system_match = re.search(r'坐标系：\s*(\w+)', content)
     assert coord_system_match, "cannot extract coord_system"
     
@@ -54,6 +54,22 @@ def parse_inertia_file(content: str) -> Optional[Tuple[str, float, Dict[str, flo
     assert mass_match, "cannot extract mass"
     
     mass = float(mass_match.group(1))
+    
+    # Extract center of gravity
+    cog_match = re.search(
+        r'重心\s*:.*?\n'
+        r'\s*X\s*=\s*([-+]?[\d.]+(?:[eE][-+]?\d+)?)\s*\n'
+        r'\s*Y\s*=\s*([-+]?[\d.]+(?:[eE][-+]?\d+)?)\s*\n'
+        r'\s*Z\s*=\s*([-+]?[\d.]+(?:[eE][-+]?\d+)?)',
+        content, re.DOTALL
+    )
+    assert cog_match, "cannot extract center of gravity"
+    
+    cog = [
+        str(float(cog_match.group(1))),
+        str(float(cog_match.group(2))),
+        str(float(cog_match.group(3))),
+    ]
     
     # Extract inertia tensor
     inertia_section = re.search(
@@ -85,4 +101,4 @@ def parse_inertia_file(content: str) -> Optional[Tuple[str, float, Dict[str, flo
         if key in ["ixy", "ixz", "iyz"]:
             inertia_dict[key] = -inertia_dict[key]
     
-    return link_name, mass, inertia_dict
+    return link_name, mass, inertia_dict, cog

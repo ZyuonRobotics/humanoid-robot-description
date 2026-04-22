@@ -114,7 +114,7 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
             
             with open(text_path, "r") as f:
                 content = f.read()
-            link_name, mass, inertia_dict = parse_inertia_file(content)
+            link_name, mass, inertia_dict, cog = parse_inertia_file(content)
             link_found = False
             for link_elem in self.root.findall("link"):
                 if link_elem.attrib['name'] == link_name:
@@ -124,6 +124,11 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
 
                     inertia_elem = inertial_elem.find("inertia")
                     assert inertia_elem is not None, f"inertia element not found in the link {link_name}"
+
+                    origin_elem = inertial_elem.find("origin")
+                    assert origin_elem is not None, f"origin element not found in the inertia element of the link {link_name}"
+                    origin_elem.attrib['xyz'] = " ".join(cog)
+
                     inertia_elem.attrib.update({k: str(v) for k, v in inertia_dict.items()})
                     
                     mass_elem = inertial_elem.find("mass")
