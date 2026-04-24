@@ -57,7 +57,7 @@ def parse_inertia_file(content: str) -> Optional[Tuple[str, float, Dict[str, flo
     
     # Extract center of gravity
     cog_match = re.search(
-        r'重心\s*:.*?\n'
+        r'(?:重心|质心)\s*:.*?\n'
         r'\s*X\s*=\s*([-+]?[\d.]+(?:[eE][-+]?\d+)?)\s*\n'
         r'\s*Y\s*=\s*([-+]?[\d.]+(?:[eE][-+]?\d+)?)\s*\n'
         r'\s*Z\s*=\s*([-+]?[\d.]+(?:[eE][-+]?\d+)?)',
