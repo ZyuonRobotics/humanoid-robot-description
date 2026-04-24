@@ -115,6 +115,7 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
             with open(text_path, "r") as f:
                 content = f.read()
             link_name, mass, inertia_dict, cog = parse_inertia_file(content)
+            assert text_path.stem == link_name, f"file name '{text_path.stem}' does not match link name '{link_name}'"
             link_found = False
             for link_elem in self.root.findall("link"):
                 if link_elem.attrib['name'] == link_name:
@@ -146,6 +147,7 @@ class HumanoidURDFMujocoParser(HumanoidMJCFParser):
         self.fix_urdf_mujoco_tag()
         self.fix_urdf_worldbody(base_link_name=base_link_name)
         sw_inertia_path = self.file_path.parent.parent / "sw_inertia"
+        assert sw_inertia_path.exists(), f"{sw_inertia_path} does not exist"
         if sw_inertia_path.exists():
             self.fix_urdf_inerita()
         
