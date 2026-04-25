@@ -163,5 +163,8 @@ class HumanoidURDFOriginalParser(BaseParser):
         self.parse_body_name()
         self.parse_imu()
 
+        motor_yaml_path = self.file_path.parent.parent / "motor.yaml"
+        self.hrdf.parse_motor_mapping(motor_yaml_path)
+
     def print_body_tree(self, colorful=False):
         print("print_body_tree Not implemented")

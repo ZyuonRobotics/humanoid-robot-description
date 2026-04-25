@@ -129,6 +129,50 @@ class HRDF(BaseConfig):
             self.info_list_dict[info_name] = InfoList(INFO_CLASS_DICT[info_name])
         self.info_list_dict[info_name].append(info)
 
+    @staticmethod
+    def _print_prominent_warning(msg: str):
+        border = "!" * 72
+        print(f"\n{border}")
+        for line in msg.split("\n"):
+            print(f"  {line}")
+        print(f"{border}\n")
+
+    def parse_motor_mapping(self, motor_yaml_path: Path):
+        if not motor_yaml_path.exists():
+            self._print_prominent_warning(
+                f"motor.yaml not found at: {motor_yaml_path}\n"
+                "Skipping motor direction mapping. joint_mapping.yaml will not be generated."
+            )
+            return
+
+        with open(motor_yaml_path, 'r', encoding='utf-8') as f:
+            motor_config = yaml.safe_load(f) or {}
+
+        attached_to_parent = motor_config.get("motor_attached_to_parent_joints", []) or []
+        direction_flipped = motor_config.get("motor_joint_direction_flipped", []) or []
+
+        if not attached_to_parent and not direction_flipped:
+            self._print_prominent_warning(
+                "Both motor_attached_to_parent_joints and motor_joint_direction_flipped are empty in motor.yaml.\n"
+                "Did you forget to configure motor direction mapping?"
+            )
+
+        joint_names = self.get_info_data_list("joint", "name")
+        negative_motor_idx_list = []
+
+        for idx, joint_name in enumerate(joint_names):
+            factor = 1
+            if joint_name in attached_to_parent:
+                factor *= -1
+            if joint_name in direction_flipped:
+                factor *= -1
+            if factor == -1:
+                negative_motor_idx_list.append(idx)
+
+        self.joint_mapping_config = JointMappingConfig(
+            negative_motor_idx_list=negative_motor_idx_list
+        )
+
     def get_info_by_attr(self, attr_name: str, attr_value: str, info_name: str, single=False):
         if info_name not in self.info_list_dict:
             return []
