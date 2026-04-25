@@ -151,13 +151,33 @@ class HRDF(BaseConfig):
         attached_to_parent = motor_config.get("motor_attached_to_parent_joints", []) or []
         direction_flipped = motor_config.get("motor_joint_direction_flipped", []) or []
 
-        if not attached_to_parent and not direction_flipped:
+        if not attached_to_parent:
             self._print_prominent_warning(
-                "Both motor_attached_to_parent_joints and motor_joint_direction_flipped are empty in motor.yaml.\n"
-                "Did you forget to configure motor direction mapping?"
+                "motor_attached_to_parent_joints is empty in motor.yaml.\n"
+                "Did you forget to configure it?"
+            )
+        if not direction_flipped:
+            self._print_prominent_warning(
+                "motor_joint_direction_flipped is empty in motor.yaml.\n"
+                "Did you forget to configure it?"
             )
 
         joint_names = self.get_info_data_list("joint", "name")
+        joint_name_set = set(joint_names)
+
+        unknown_attached = [j for j in attached_to_parent if j not in joint_name_set]
+        if unknown_attached:
+            raise ValueError(
+                f"motor_attached_to_parent_joints contains joints not found in the model: {unknown_attached}\n"
+                f"Valid joints: {joint_names}"
+            )
+
+        unknown_flipped = [j for j in direction_flipped if j not in joint_name_set]
+        if unknown_flipped:
+            raise ValueError(
+                f"motor_joint_direction_flipped contains joints not found in the model: {unknown_flipped}\n"
+                f"Valid joints: {joint_names}"
+            )
         negative_motor_idx_list = []
 
         for idx, joint_name in enumerate(joint_names):
